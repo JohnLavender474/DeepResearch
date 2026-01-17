@@ -1,21 +1,35 @@
-import uuid
+import tempfile
+import os
+import json
+
 from typing import List
 
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import (
+    APIRouter,
+    Request,
+    HTTPException,
+    UploadFile,
+    File,
+    Form
+)
 
-from qdrant_client.models import PointStruct
-
-from model.document_insertion import DocumentInsertion
 from model.search_query import SearchQuery
+from client.qdrant_client import QdrantVectorClient
+from service.embedding_service import EmbeddingService
+from service.document_processor import DocumentProcessor
 
 
 router = APIRouter(prefix="/api/embedding", tags=["embedding"])
 
 
 @router.post("/collections/{collection_name}")
-async def create_collection(collection_name: str, request: Request):
-    embedding_service = request.app.state.embedding_service
-    vector_client = request.app.state.vector_client
+async def create_collection(collection_name: str, request: Request):    
+    embedding_service: EmbeddingService = (
+        request.app.state.embedding_service
+    )
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
     
     if vector_client.collection_exists(collection_name):
         raise HTTPException(
@@ -33,67 +47,58 @@ async def create_collection(collection_name: str, request: Request):
     }
 
 
-@router.post("/collections/{collection_name}/embed")
-async def embed(
+@router.post("/collections/{collection_name}/upload")
+async def upload_document(
     collection_name: str,
-    page: DocumentInsertion,
-    request: Request
-):
-    embedding_service = request.app.state.embedding_service
-    vector_client = request.app.state.vector_client
-    
-    if not vector_client.collection_exists(collection_name):
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
-        )
-    
-    vector = embedding_service.embed(page.content)
-    
-    point_id = str(uuid.uuid4())
-    point = PointStruct(
-        id=point_id,
-        vector=vector,
-        payload=page.metadata
+    file: UploadFile = File(...),
+    metadata: str = Form("{}"),
+    request: Request = None
+):    
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+    document_processor: DocumentProcessor = (
+        request.app.state.document_processor
     )
     
-    vector_client.upsert(collection_name, [point])
-    
-    return {"status": "ok", "id": point_id}
-
-
-@router.post("/collections/{collection_name}/embed_batch")
-async def embed_batch(
-    collection_name: str,
-    pages: List[DocumentInsertion],
-    request: Request
-):
-    embedding_service = request.app.state.embedding_service
-    vector_client = request.app.state.vector_client
-    
     if not vector_client.collection_exists(collection_name):
         raise HTTPException(
             status_code=404,
             detail=f"Collection '{collection_name}' does not exist"
         )
     
-    points = []
-    for page in pages:
-        vector = embedding_service.embed(page.content)
-        point_id = str(uuid.uuid4())
-        points.append(
-            PointStruct(
-                id=point_id,
-                vector=vector,
-                payload=page.metadata
-            )
+    metadata_dict = json.loads(metadata)
+    
+    with tempfile.NamedTemporaryFile(
+        delete=False,
+        suffix=os.path.splitext(file.filename)[1]
+    ) as tmp_file:
+        content = await file.read()
+        tmp_file.write(content)
+        tmp_path = tmp_file.name
+    
+    try:
+        points = document_processor.process_document(
+            file_path=tmp_path,
+            filename=file.filename,
+            metadata=metadata_dict
         )
+        
+        batch_size = 64
+        for i in range(0, len(points), batch_size):
+            vector_client.upsert(
+                collection_name,
+                points[i : i + batch_size]
+            )
+        
+        return {
+            "status": "ok",
+            "filename": file.filename,
+            "chunks_indexed": len(points)
+        }
     
-    batch_size = 64
-    for i in range(0, len(points), batch_size):
-        vector_client.upsert(collection_name, points[i : i + batch_size])
-    
-    return {"status": "ok", "indexed": len(points)}
+    finally:
+        os.unlink(tmp_path)
 
 
 @router.post("/collections/{collection_name}/search")
@@ -102,8 +107,12 @@ async def search(
     query: SearchQuery,
     request: Request
 ):
-    embedding_service = request.app.state.embedding_service
-    vector_client = request.app.state.vector_client
+    embedding_service: EmbeddingService = (
+        request.app.state.embedding_service
+    )
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
     
     if not vector_client.collection_exists(collection_name):
         raise HTTPException(
@@ -111,7 +120,7 @@ async def search(
             detail=f"Collection '{collection_name}' does not exist"
         )
     
-    query_vector = embedding_service.embed(query.query)
+    query_vector = embedding_service.get_encoding(query.query)
     
     results = vector_client.search(
         collection_name,
