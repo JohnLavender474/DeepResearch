@@ -11,6 +11,7 @@
 - **Do not make config values as hardcoded or default parameters**: Avoid hardcoding configuration values or using them as default parameters in functions or classes. 
 - **Define data classes in separate files**: When creating data classes, models, or schemas, place them in their own dedicated files rather than embedding them within other modules.
 - **Organize imports**: Group and order imports logically (e.g., standard libraries first, followed by third-party libraries, then local modules). Make sure there is a newline between each group. Do not add inline import statements within functions or methods unless absolutely necessary.
+- **Named arguments**: Use named arguments when calling functions or methods for better readability. Put each named argument on its own line if there are multiple arguments.
 
 ## Scope & Completeness
 

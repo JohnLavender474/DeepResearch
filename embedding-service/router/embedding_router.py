@@ -11,7 +11,7 @@ from fastapi import (
 )
 
 from model.search_query import SearchQuery
-from client.qdrant_client import QdrantVectorClient
+from client.qdrant_vector_client import QdrantVectorClient
 from service.embedding_service import EmbeddingService
 from processor.document_processor import DocumentProcessor
 

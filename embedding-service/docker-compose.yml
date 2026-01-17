@@ -8,9 +8,9 @@ services:
 
   embedding-service:
     build:
-      context: ./embedding-service
+      context: .
     ports:
-      - "8000:6333"
+      - "8000:8000"
     environment:
       - QDRANT_URL=http://qdrant:6333
       - SENTENCE_TRANSFORMER_MODEL=all-MiniLM-L6-v2
