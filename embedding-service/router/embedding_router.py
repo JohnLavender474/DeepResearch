@@ -21,6 +21,17 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/embedding", tags=["embedding"])
 
 
+@router.get("/collections")
+async def list_collections(request: Request):
+    logger.info("Listing all collections")
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+    collections = vector_client.get_collections()
+    logger.info(f"Found {len(collections)} collections")
+    return {"collections": collections}
+
+
 @router.get("/collections/{collection_name}")
 async def collection_exists(collection_name: str, request: Request):
     logger.info(f"Checking if collection '{collection_name}' exists")
@@ -57,6 +68,43 @@ async def create_collection(collection_name: str, request: Request):
         "status": "ok",
         "collection": collection_name,
         "vector_size": vector_size
+    }
+
+
+@router.get("/collections/{collection_name}/documents")
+async def get_documents(
+    collection_name: str,
+    request: Request,
+    limit: int = 100
+):
+    logger.info(
+        f"Get documents request for collection '{collection_name}' "
+        f"with limit={limit}"
+    )
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+    
+    if not vector_client.collection_exists(collection_name=collection_name):
+        logger.error(f"Collection '{collection_name}' does not exist")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collection '{collection_name}' does not exist"
+        )
+    
+    documents = vector_client.get_all_points(
+        collection_name=collection_name,
+        limit=limit
+    )
+    
+    logger.info(
+        f"Retrieved {len(documents)} documents from "
+        f"collection '{collection_name}'"
+    )
+    return {
+        "collection": collection_name,
+        "documents": documents,
+        "count": len(documents)
     }
 
 

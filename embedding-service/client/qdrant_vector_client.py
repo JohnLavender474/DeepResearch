@@ -61,13 +61,32 @@ class QdrantVectorClient:
 
 
     def collection_exists(self, collection_name: str) -> bool:
+        logger.debug(f"Checking if collection '{collection_name}' exists")
         try:
-            self.client.get_collection(collection_name=collection_name)
-            logger.debug(f"Collection '{collection_name}' exists")
-            return True
-        except Exception:
-            logger.debug(f"Collection '{collection_name}' does not exist")
-            return False
+            collections = self.client.get_collections()
+            exists = any(
+                collection.name == collection_name 
+                for collection in collections.collections
+            )
+            logger.debug(
+                f"Collection '{collection_name}' exists: {exists}"
+            )
+            return exists
+        except Exception as e:
+            logger.error(f"Failed to check collection existence: {e}")
+            raise
+        
+
+    def get_collections(self) -> List[str]:
+        logger.debug("Fetching all collections")
+        try:
+            response = self.client.get_collections()
+            collection_names = [collection.name for collection in response.collections]
+            logger.debug(f"Found {len(collection_names)} collections")
+            return collection_names
+        except Exception as e:
+            logger.error(f"Failed to fetch collections: {e}")
+            raise
 
 
     def search(
@@ -95,4 +114,41 @@ class QdrantVectorClient:
             return results
         except Exception as e:
             logger.error(f"Search failed on collection '{collection_name}': {e}")
+            raise
+
+    
+    def get_all_points(
+        self,
+        collection_name: str,
+        limit: int = 100
+    ) -> List[Dict[str, Any]]:
+        logger.debug(
+            f"Fetching all points from collection '{collection_name}' "
+            f"with limit={limit}"
+        )
+        client: QdrantClient = self.client
+        try:
+            points = client.scroll(
+                collection_name=collection_name,
+                limit=limit,
+                with_payload=True,
+                with_vectors=False
+            )
+            results = [
+                {
+                    "id": point.id,
+                    "payload": point.payload
+                } 
+                for point in points[0]
+            ]
+            logger.debug(
+                f"Retrieved {len(results)} points from "
+                f"collection '{collection_name}'"
+            )
+            return results
+        except Exception as e:
+            logger.error(
+                f"Failed to fetch points from collection "
+                f"'{collection_name}': {e}"
+            )
             raise
