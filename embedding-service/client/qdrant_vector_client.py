@@ -89,6 +89,17 @@ class QdrantVectorClient:
             raise
 
 
+    def delete_collection(self, collection_name: str) -> bool:
+        logger.info(f"Deleting collection '{collection_name}'")
+        try:
+            self.client.delete_collection(collection_name=collection_name)
+            logger.info(f"Collection '{collection_name}' deleted successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete collection '{collection_name}': {e}")
+            raise
+
+
     def search(
         self,
         collection_name: str,

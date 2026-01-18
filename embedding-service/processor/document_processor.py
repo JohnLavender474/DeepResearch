@@ -86,7 +86,8 @@ class DocumentProcessor:
         self,
         file_path: str,
         filename: str,
-        chunk_size: int = 2000
+        chunk_size: int = 2000,
+        custom_metadata: dict[str, any] = {}
     ) -> List[PointStruct]:
         logger.info(f"Processing document: {filename}")
         text = self.extract_text(file_path)
@@ -103,7 +104,8 @@ class DocumentProcessor:
             chunk_metadata = ChunkMetadata(
                 chunk_index=i,
                 source_name=filename,
-                content=chunk
+                content=chunk,
+                custom_metadata=custom_metadata
             )
 
             points.append(

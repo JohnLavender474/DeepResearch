@@ -1,6 +1,7 @@
 import tempfile
 import os
 import logging
+from typing import Any
 
 from fastapi import (
     APIRouter,
@@ -27,9 +28,16 @@ async def list_collections(request: Request):
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    collections = vector_client.get_collections()
-    logger.info(f"Found {len(collections)} collections")
-    return {"collections": collections}
+    try:
+        collections = vector_client.get_collections()
+        logger.info(f"Found {len(collections)} collections")
+        return {"collections": collections}
+    except Exception as e:
+        logger.error(f"Failed to list collections: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list collections: {e}"
+        )
 
 
 @router.get("/collections/{collection_name}")
@@ -38,9 +46,17 @@ async def collection_exists(collection_name: str, request: Request):
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    exists = vector_client.collection_exists(collection_name)
-    logger.info(f"Collection '{collection_name}' exists: {exists}")
-    return {"exists": exists}
+
+    try:
+        exists = vector_client.collection_exists(collection_name)
+        logger.info(f"Collection '{collection_name}' exists: {exists}")
+        return {"exists": exists}
+    except Exception as e:
+        logger.error(f"Failed to check collection existence: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to check collection existence: {e}"
+        )
 
 
 @router.post("/collections/{collection_name}")
@@ -53,22 +69,56 @@ async def create_collection(collection_name: str, request: Request):
         request.app.state.vector_client
     )
 
-    if vector_client.collection_exists(collection_name):
-        logger.warning(f"Collection '{collection_name}' already exists")
+    try:
+        if vector_client.collection_exists(collection_name):
+            logger.warning(f"Collection '{collection_name}' already exists")
+            raise HTTPException(
+                status_code=409,
+                detail=f"Collection '{collection_name}' already exists"
+            )
+
+        vector_size = embedding_service.get_dimension()
+        vector_client.create_collection(collection_name, vector_size)
+
+        logger.info(f"Collection '{collection_name}' created successfully")
+        return {
+            "status": "ok",
+            "collection": collection_name,
+            "vector_size": vector_size
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to create collection: {e}")
         raise HTTPException(
-            status_code=409,
-            detail=f"Collection '{collection_name}' already exists"
+            status_code=500,
+            detail=f"Failed to create collection: {e}"
         )
 
-    vector_size = embedding_service.get_dimension()
-    vector_client.create_collection(collection_name, vector_size)
 
-    logger.info(f"Collection '{collection_name}' created successfully")
-    return {
-        "status": "ok",
-        "collection": collection_name,
-        "vector_size": vector_size
-    }
+@router.delete("/collections/{collection_name}")
+async def delete_collection(collection_name: str, request: Request):
+    logger.info(f"Delete collection request for '{collection_name}'")
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+
+    if not vector_client.collection_exists(collection_name):
+        logger.warning(f"Collection '{collection_name}' does not exist")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Collection '{collection_name}' does not exist"
+        )
+
+    try:
+        vector_client.delete_collection(collection_name)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to delete collection '{collection_name}': {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete collection '{collection_name}': {e}"
+        )
 
 
 @router.get("/collections/{collection_name}/documents")
@@ -84,28 +134,37 @@ async def get_documents(
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    
-    if not vector_client.collection_exists(collection_name=collection_name):
-        logger.error(f"Collection '{collection_name}' does not exist")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
+
+    try:
+        if not vector_client.collection_exists(collection_name=collection_name):
+            logger.error(f"Collection '{collection_name}' does not exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_name}' does not exist"
+            )
+
+        documents = vector_client.get_all_points(
+            collection_name=collection_name,
+            limit=limit
         )
-    
-    documents = vector_client.get_all_points(
-        collection_name=collection_name,
-        limit=limit
-    )
-    
-    logger.info(
-        f"Retrieved {len(documents)} documents from "
-        f"collection '{collection_name}'"
-    )
-    return {
-        "collection": collection_name,
-        "documents": documents,
-        "count": len(documents)
-    }
+
+        logger.info(
+            f"Retrieved {len(documents)} documents from "
+            f"collection '{collection_name}'"
+        )
+        return {
+            "collection": collection_name,
+            "documents": documents,
+            "count": len(documents)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve documents: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve documents: {e}"
+        )
 
 
 @router.post("/collections/{collection_name}/upload")
@@ -113,6 +172,7 @@ async def upload_document(
     request: Request,
     collection_name: str,
     file: UploadFile = File(...),
+    custom_metadata: dict[str, Any] = Form({})
 ):
     logger.info(f"Upload document request for collection '{collection_name}', file: {file.filename}")
     vector_client: QdrantVectorClient = (
@@ -142,6 +202,7 @@ async def upload_document(
         points = document_processor.process_document(
             file_path=tmp_path,
             filename=file.filename,
+            custom_metadata=custom_metadata
         )
         logger.info(f"Document processed into {len(points)} chunks")
 
@@ -181,21 +242,30 @@ async def search(
         request.app.state.vector_client
     )
 
-    if not vector_client.collection_exists(collection_name):
-        logger.error(f"Collection '{collection_name}' does not exist")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
+    try:
+        if not vector_client.collection_exists(collection_name):
+            logger.error(f"Collection '{collection_name}' does not exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_name}' does not exist"
+            )
+
+        logger.debug("Encoding search query")
+        query_vector = embedding_service.get_encoding(query.query)
+
+        results = vector_client.search(
+            collection_name,
+            query_vector,
+            top_k=query.top_k
         )
 
-    logger.debug("Encoding search query")
-    query_vector = embedding_service.get_encoding(query.query)
-
-    results = vector_client.search(
-        collection_name,
-        query_vector,
-        top_k=query.top_k
-    )
-
-    logger.info(f"Search completed, found {len(results)} results")
-    return {"results": results}
+        logger.info(f"Search completed, found {len(results)} results")
+        return {"results": results}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Search failed: {e}"
+        )
