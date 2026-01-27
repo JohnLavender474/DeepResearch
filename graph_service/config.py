@@ -1,5 +1,11 @@
 import os
 
+from dotenv import load_dotenv
+
+
+load_dotenv()
+
+
 def _get_required_env_var(var_name):
     value = os.getenv(var_name)
     if value is None:

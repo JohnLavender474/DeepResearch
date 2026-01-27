@@ -1,57 +1,41 @@
-from typing import Literal
-
 from langgraph.graph import StateGraph, START, END
-from pydantic import BaseModel
+
+from model.graph_state import (
+    GraphState,
+    GraphStep,
+)
+from graph_service.model.process_selection import (
+    ProcessSelectionInput,
+)
+from graph_service.service.process_selection_service import (
+    select_process,
+)
 
 
-class GraphState(BaseModel):
-    query: str
-    result: str = ""
-    iteration: int = 0
+async def node_process_selection(state: GraphState) -> GraphState:
+    input_data = ProcessSelectionInput(user_query=state.user_query)
+    
+    output = await select_process(input_data)
 
+    state.process_selection = output
+    state.steps.append(
+        GraphStep(
+            type="process_selection",
+            details={
+                "process_selection": output
+            },
+        )
+    )
 
-def node_process(state: GraphState) -> GraphState:
-    state.result = f"Processing: {state.query}"
-    state.iteration += 1
     return state
-
-
-def node_analyze(state: GraphState) -> GraphState:
-    state.result = f"Analyzed: {state.result}"
-    return state
-
-
-def node_finalize(state: GraphState) -> GraphState:
-    state.result = f"Final output: {state.result}"
-    return state
-
-
-def should_continue(state: GraphState) -> Literal["analyze", "finalize"]:
-    if state.iteration < 2:
-        return "analyze"
-    return "finalize"
 
 
 def build_graph() -> StateGraph:
-    workflow = StateGraph(GraphState)
+    graph = StateGraph(GraphState)
 
-    workflow.add_node("process", node_process)
-    workflow.add_node("analyze", node_analyze)
-    workflow.add_node("finalize", node_finalize)
+    graph.add_node("process_selection", node_process_selection)
 
-    workflow.add_edge(START, "process")
-    workflow.add_conditional_edges(
-        "process",
-        should_continue,
-        {
-            "analyze": "analyze",
-            "finalize": "finalize"
-        }
-    )
-    workflow.add_edge("analyze", "finalize")
-    workflow.add_edge("finalize", END)
+    graph.add_edge(START, "process_selection")
+    graph.add_edge("process_selection", END)
 
-    return workflow.compile()
-
-
-graph = build_graph()
+    return graph.compile()

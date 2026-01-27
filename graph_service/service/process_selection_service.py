@@ -2,14 +2,14 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from llm.claude_client import claude_client
 
-from graph_service.model.query_classification import (
+from model.process_selection import (
     ProcessSelectionInput,
     ProcessSelectionOutput,
 )
-from graph_service.utils.prompt_loader import load_prompt
+from utils.prompt_loader import load_prompt
 
 
-async def classify_query(
+async def select_process(
     input_data: ProcessSelectionInput,
 ) -> ProcessSelectionOutput:
     system_prompt = load_prompt("process_selection.md")
@@ -17,7 +17,7 @@ async def classify_query(
     output = await claude_client.ainvoke(
         [
             SystemMessage(content=system_prompt),
-            HumanMessage(content=input_data.query),
+            HumanMessage(content=input_data.user_query),
         ],        
         output_type=ProcessSelectionOutput,
     )

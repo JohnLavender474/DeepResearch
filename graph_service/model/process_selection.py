@@ -4,15 +4,16 @@ from pydantic import BaseModel
 
 
 ProcessType = Literal[
-    "simple_synthesis",
-    "exhaustive_synthesis",
-    "chain_of_process_synthesis",
+    "simple_process",
+    "parallel_synthesis",
+    "sequential_synthesis",
 ]
 
 
 class ProcessSelectionInput(BaseModel):
-    query: str
+    user_query: str
 
 
 class ProcessSelectionOutput(BaseModel):
-    process: ProcessType
+    process_type: ProcessType
+    reasoning: str
