@@ -1,6 +1,8 @@
 from typing import Optional
 from pydantic import BaseModel
 
+from langchain_core.messages import BaseMessage
+
 from model.process_selection import ProcessSelectionOutput
 
 
@@ -11,6 +13,6 @@ class GraphStep(BaseModel):
 
 class GraphState(BaseModel):
     user_query: str
-    process_selection: Optional[ProcessSelectionOutput] = None    
     steps: list[GraphStep] = []
-    session_id: str = "" 
+    messages: list[BaseMessage] = []        
+    process_selection: Optional[ProcessSelectionOutput] = None    

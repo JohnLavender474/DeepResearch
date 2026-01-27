@@ -13,7 +13,10 @@ from graph_service.service.process_selection_service import (
 
 
 async def node_process_selection(state: GraphState) -> GraphState:
-    input_data = ProcessSelectionInput(user_query=state.user_query)
+    input_data = ProcessSelectionInput(
+        user_query=state.user_query,
+        messages=state.messages,
+    )
     
     output = await select_process(input_data)
 
