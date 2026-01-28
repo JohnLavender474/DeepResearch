@@ -1,4 +1,5 @@
 from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -6,7 +7,7 @@ class TaskDecomposition(BaseModel):
     tasks: list[str]
 
 
-class TaskResult(BaseModel):    
+class TaskResult(BaseModel):
     result: str
     reasoning: str
 
