@@ -82,7 +82,7 @@ async def execute_parallel_synthesis(
         output_type=TaskResult,
     )
 
-    result = summary_response.content
+    result = summary_response.result
 
     return ParallelSynthesisOutput(
         overall_result=result,

@@ -73,8 +73,7 @@ async def node_parallel_synthesis(
     state: GraphState,
 ) -> GraphState:
     input_data = ParallelSynthesisInput(
-        query=state.user_query,
-        messages=state.messages,
+        query=state.user_query,        
         collection_name=state.profile_id,
     )
     output = await execute_parallel_synthesis(input_data)
