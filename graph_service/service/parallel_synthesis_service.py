@@ -1,12 +1,10 @@
 import asyncio
 import json
-
 import httpx
+
 from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
-    AIMessage,
-    BaseMessage,
 )
 
 from llm.claude_client import claude_client
@@ -14,12 +12,12 @@ from model.parallel_synthesis import (
     ParallelSynthesisInput,
     ParallelSynthesisOutput,
 )
-from graph_service.model.task import (
+from model.task import (
     TaskDecomposition,
     TaskResult,
     TaskEntry,
 )
-from graph_service.model.semantic_search_query import (
+from model.semantic_search_query import (
     SemanticSearchQuery,
 )
 from utils.prompt_loader import load_prompt
@@ -40,20 +38,13 @@ async def execute_parallel_synthesis(
         )
     )
 
-    messages = (
-        input_data.messages
-        if input_data.messages is not None
-        else []
-    )
-    messages.extend([
-        SystemMessage(
-            content=formatted_decomposition_prompt,
-        ),
-        HumanMessage(content=input_data.query),
-    ])
-
     decomposition = await claude_client.ainvoke(
-        input=messages,
+        input=([
+            SystemMessage(
+                content=formatted_decomposition_prompt,
+            ),
+            HumanMessage(content=input_data.query),
+        ]),
         output_type=TaskDecomposition,
     )
 
@@ -64,8 +55,7 @@ async def execute_parallel_synthesis(
     task_coroutines = [
         _execute_task(
             task,
-            task_execution_prompt,
-            input_data.messages or [],
+            task_execution_prompt,            
             input_data.collection_name,
         )
         for task in decomposition.tasks
@@ -75,38 +65,21 @@ async def execute_parallel_synthesis(
         *task_coroutines,
     )
 
-    for entry in task_entries:
-        messages.append(
-            HumanMessage(content=entry.task),
-        )
-        if entry.success:
-            content = (
-                f"Result: {entry.result}\n\n"
-                f"Reasoning: {entry.reasoning}"
-            )
-        else:
-            content = (
-                f"Error: {entry.result}"
-            )
-        messages.append(
-            AIMessage(content=content),
-        )
-
     summary_prompt = load_prompt(
         "parallel_synthesis_summary.md",
     )
 
-    messages.append(
-        SystemMessage(content=summary_prompt),
-    )
-    messages.append(
-        HumanMessage(
-            content="Generate the summary.",
-        ),
-    )
-
     summary_response = await claude_client.ainvoke(
-        input=messages,
+        input=([
+            SystemMessage(content=summary_prompt),
+            HumanMessage(
+                content=json.dumps(
+                    [entry.model_dump() for entry in task_entries],
+                    indent=2,
+                ),
+            ),
+        ]),
+        output_type=TaskResult,
     )
 
     result = summary_response.content
@@ -188,8 +161,7 @@ def _format_document_context(
 
 async def _execute_task(
     task: str,
-    prompt: str,
-    messages: list[BaseMessage],
+    prompt: str,    
     collection_name: str,
 ) -> TaskEntry:
     try:
@@ -207,20 +179,17 @@ async def _execute_task(
 
         formatted_prompt = prompt.format(task=task)
 
-        task_messages = messages.copy()
-        task_messages.extend([
-            SystemMessage(
-                content=(
-                    f"{formatted_prompt}\n\n"
-                    f"## Relevant Context\n\n"
-                    f"{document_context}"
-                ),
-            ),
-            HumanMessage(content=task),
-        ])
-
         result = await claude_client.ainvoke(
-            input=task_messages,
+            input=([
+                SystemMessage(
+                    content=(
+                        f"{formatted_prompt}\n\n"
+                        f"## Relevant Context\n\n"
+                        f"{document_context}"
+                    ),
+                ),
+                HumanMessage(content=task),
+            ]),
             output_type=TaskResult,
         )
 

@@ -6,22 +6,22 @@ from model.graph_state import (
     GraphState,
     GraphStep,
 )
-from graph_service.model.process_selection import (
+from model.process_selection import (
     ProcessSelectionInput,
 )
-from graph_service.model.simple_process import (
+from model.simple_process import (
     SimpleProcessInput,
 )
-from graph_service.model.parallel_synthesis import (
+from model.parallel_synthesis import (
     ParallelSynthesisInput,
 )
-from graph_service.service.process_selection_service import (
+from service.process_selection_service import (
     select_process,
 )
-from graph_service.service.simple_process_service import (
+from service.simple_process_service import (
     execute_simple_process,
 )
-from graph_service.service.parallel_synthesis_service import (
+from service.parallel_synthesis_service import (
     execute_parallel_synthesis,
 )
 
