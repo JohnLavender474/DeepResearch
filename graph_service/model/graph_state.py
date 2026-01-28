@@ -13,6 +13,7 @@ class GraphStep(BaseModel):
 
 class GraphState(BaseModel):
     user_query: str
+    profile_id: str
     steps: list[GraphStep] = []
     messages: list[BaseMessage] = []
     process_selection: Optional[ProcessSelectionOutput] = None

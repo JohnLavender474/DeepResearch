@@ -74,6 +74,7 @@ async def node_parallel_synthesis(
     input_data = ParallelSynthesisInput(
         query=state.user_query,
         messages=state.messages,
+        collection_name=state.profile_id,
     )
     output = await execute_parallel_synthesis(input_data)
 
@@ -113,7 +114,7 @@ def build_graph() -> StateGraph:
     graph.add_edge(START, "process_selection")
     graph.add_edge("simple_process", END)
     graph.add_edge("parallel_synthesis", END)
-    
+
     graph.add_conditional_edges(
         "process_selection",
         route_by_process_selection,

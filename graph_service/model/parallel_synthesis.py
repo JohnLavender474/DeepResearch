@@ -6,6 +6,7 @@ from langchain_core.messages import BaseMessage
 
 class ParallelSynthesisInput(BaseModel):
     query: str
+    collection_name: str
     messages: Optional[list[BaseMessage]] = None
 
 
