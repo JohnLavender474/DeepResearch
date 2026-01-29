@@ -3,3 +3,4 @@
 *.pyc
 .idea
 **/.env
+**/blob_storage/

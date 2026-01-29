@@ -17,11 +17,13 @@ from model.task import (
     TaskDecomposition,
     TaskResult,
     TaskEntry,
+    TaskCitation,
 )
 from model.semantic_search_query import (
     SemanticSearchQuery,
 )
 from utils.prompt_loader import load_prompt
+
 
 
 logger = logging.getLogger(__name__)
@@ -159,7 +161,7 @@ def _format_document_context(
     search_query: str,
     documents: list[dict],
 ) -> str:
-    logger.debug(f"Formatting context for {len(documents)} documents")
+    logger.debug(f"Formatting context for {len(documents)} documents")    
     if not documents:
         logger.debug(f"No documents found for search query: {search_query}")
         return (
@@ -181,6 +183,36 @@ def _format_document_context(
     return "\n".join(context_parts)
 
 
+def _extract_citations(
+    collection_name: str,
+    documents: list[dict],
+) -> list[TaskCitation]:
+    logger.debug(f"Extracting citations from {len(documents)} documents")    
+    citations: list[TaskCitation] = []
+    seen: set[tuple[str, str, int]] = set()
+
+    for doc in documents:
+        payload = doc.get("payload", {})
+
+        filename: str = payload.get("source_name", "unknown")
+        pages = payload.get("page", -1)
+
+        citation_key = (collection_name, filename, pages)
+
+        if citation_key not in seen:
+            citations.append(
+                TaskCitation(
+                    collection_name=collection_name,
+                    filename=filename,
+                    pages=str(pages) if pages else None,
+                )
+            )
+            seen.add(citation_key)
+
+    logger.debug(f"Extracted {len(citations)} unique citations")
+    return citations
+
+
 async def _execute_task(
     task: str,
     prompt: str,    
@@ -195,6 +227,11 @@ async def _execute_task(
             search_query,
         )
 
+        citations = _extract_citations(
+            collection_name,
+            documents,
+        )
+
         document_context = _format_document_context(
             search_query,
             documents,
@@ -202,7 +239,7 @@ async def _execute_task(
 
         formatted_prompt = prompt.format(task=task)
 
-        result = await claude_client.ainvoke(
+        output = await claude_client.ainvoke(
             input=([
                 SystemMessage(
                     content=(
@@ -220,8 +257,9 @@ async def _execute_task(
         return TaskEntry(
             task=task,
             success=True,
-            result=result.result,
-            reasoning=result.reasoning,
+            result=output.result,
+            reasoning=output.reasoning,
+            citations=citations,
         )
     except Exception as e:
         logger.error(f"Task '{task}' failed with error: {e}", exc_info=True)
@@ -229,4 +267,5 @@ async def _execute_task(
             task=task,
             success=False,
             result=str(e),
+            citations=[],
         )
