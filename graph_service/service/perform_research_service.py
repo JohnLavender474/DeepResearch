@@ -37,7 +37,10 @@ async def _decompose_tasks(
     input_data: PerformResearchInput,
     execution_type: str
 ) -> TaskDecomposition:
-    logger.debug(f"Starting task decomposition for query: {input_data.query}")
+    logger.debug(
+        f"Starting task decomposition for query: " 
+        f"{input_data.query}"
+    )
 
     decomposition_prompt = load_prompt(
         f"{execution_type}_task_decomposition.md",
@@ -61,7 +64,10 @@ async def _decompose_tasks(
         ]),
         output_type=TaskDecomposition,
     )
-    logger.debug(f"Task decomposition complete. Number of tasks: {len(decomposition.tasks)}")
+    logger.debug(
+        f"Task decomposition complete. Number of tasks: " 
+        f"{len(decomposition.tasks)}"
+    )
 
     return decomposition
 
@@ -94,9 +100,15 @@ async def _summarize_task_entries(
 async def execute_tasks_in_parallel(
     input_data: PerformResearchInput,
 ) -> PerformResearchOutput:
-    logger.debug(f"Starting parallel task execution for query: {input_data.query}")
+    logger.debug(
+        f"Starting parallel task execution for query: " 
+        f"{input_data.query}"
+    )
 
-    decomposition = await _decompose_tasks(input_data, execution_type="parallel")
+    decomposition = await _decompose_tasks(
+        input_data, 
+        execution_type="parallel"
+    )
 
     task_execution_prompt = load_prompt(
         "task_execution.md",
@@ -114,9 +126,15 @@ async def execute_tasks_in_parallel(
     task_entries = await asyncio.gather(
         *task_coroutines,
     )
-    logger.debug(f"All tasks executed. Successful: {sum(1 for e in task_entries if e.success)}, Failed: {sum(1 for e in task_entries if not e.success)}")
+    logger.debug(
+        f"All tasks executed. Successful: " 
+        f"{sum(1 for e in task_entries if e.success)}, " 
+        f"Failed: {sum(1 for e in task_entries if not e.success)}"
+    )
 
-    overall_result = await _summarize_task_entries(task_entries)
+    overall_result = await _summarize_task_entries(
+        task_entries
+    )
 
     return PerformResearchOutput(
         overall_result=overall_result,
@@ -127,9 +145,15 @@ async def execute_tasks_in_parallel(
 async def execute_tasks_in_sequence(
     input_data: PerformResearchInput,
 ) -> PerformResearchOutput:
-    logger.debug(f"Starting sequential task execution for query: {input_data.query}")
+    logger.debug(
+        f"Starting sequential task execution for query: " 
+        f"{input_data.query}"
+    )
 
-    decomposition = await _decompose_tasks(input_data, execution_type="sequential")
+    decomposition = await _decompose_tasks(
+        input_data, 
+        execution_type="sequential"
+    )
 
     task_execution_prompt = load_prompt(
         "task_execution.md",
@@ -139,7 +163,10 @@ async def execute_tasks_in_sequence(
     chat_history: list[BaseMessage] = []
 
     for task in decomposition.tasks:
-        logger.debug(f"Executing task sequentially: {task}")
+        logger.debug(
+            f"Executing task sequentially with " 
+            f"{len(chat_history)} messages in chat history"
+        )
         task_entry = await _execute_task(
             task=task,
             chat_history=chat_history,
@@ -156,7 +183,11 @@ async def execute_tasks_in_sequence(
                 AIMessage(content=(task_entry.result))
             )
 
-    logger.debug(f"All tasks executed sequentially. Successful: {sum(1 for e in task_entries if e.success)}, Failed: {sum(1 for e in task_entries if not e.success)}")
+    logger.debug(
+        f"All tasks executed sequentially. " 
+        f"Successful: {sum(1 for e in task_entries if e.success)}, " 
+        f"Failed: {sum(1 for e in task_entries if not e.success)}"
+    )
 
     overall_result = await _summarize_task_entries(task_entries)
 
