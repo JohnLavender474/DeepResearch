@@ -8,9 +8,10 @@ class TaskDecomposition(BaseModel):
 
 
 class TaskCitation(BaseModel):
-    filename: str
+    content: str
+    filename: str    
+    chunk_index: int
     collection_name: str
-    pages: Optional[str] = None
 
 
 class TaskResult(BaseModel):

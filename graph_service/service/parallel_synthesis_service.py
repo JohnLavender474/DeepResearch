@@ -19,6 +19,7 @@ from model.task import (
     TaskEntry,
     TaskCitation,
 )
+from model.search_result import SearchResult
 from model.semantic_search_query import (
     SemanticSearchQuery,
 )
@@ -130,7 +131,7 @@ async def _generate_search_query(
 async def _search_documents(
     collection_name: str,
     search_query: str,
-) -> list[dict]:
+) -> list[SearchResult]:
     logger.debug(f"Searching documents in collection '{collection_name}' with query: {search_query}")
     try:
         async with httpx.AsyncClient() as client:
@@ -146,7 +147,8 @@ async def _search_documents(
             )
             response.raise_for_status()
             data = response.json()
-            results = data.get("results", [])
+            results_data = data.get("results", [])
+            results = [SearchResult(**result) for result in results_data]
             logger.debug(f"Found {len(results)} documents")
             return results
     except httpx.HTTPError as e:
@@ -159,7 +161,7 @@ async def _search_documents(
 
 def _format_document_context(
     search_query: str,
-    documents: list[dict],
+    documents: list[SearchResult],
 ) -> str:
     logger.debug(f"Formatting context for {len(documents)} documents")    
     if not documents:
@@ -176,8 +178,7 @@ def _format_document_context(
     ]
 
     for i, doc in enumerate(documents, 1):
-        payload = doc.get("payload", {})
-        content = payload.get("content", "")
+        content = doc.metadata.content
         context_parts.append(f"{i}. {content}")
 
     return "\n".join(context_parts)
@@ -185,26 +186,26 @@ def _format_document_context(
 
 def _extract_citations(
     collection_name: str,
-    documents: list[dict],
+    documents: list[SearchResult],
 ) -> list[TaskCitation]:
     logger.debug(f"Extracting citations from {len(documents)} documents")    
     citations: list[TaskCitation] = []
     seen: set[tuple[str, str, int]] = set()
 
     for doc in documents:
-        payload = doc.get("payload", {})
+        filename = doc.metadata.source_name
+        chunk_index = doc.metadata.chunk_index
+        content = doc.metadata.content
 
-        filename: str = payload.get("source_name", "unknown")
-        pages = payload.get("page", -1)
-
-        citation_key = (collection_name, filename, pages)
+        citation_key = (collection_name, filename, chunk_index)
 
         if citation_key not in seen:
             citations.append(
-                TaskCitation(
-                    collection_name=collection_name,
+                TaskCitation(              
+                    content=content,      
                     filename=filename,
-                    pages=str(pages) if pages else None,
+                    chunk_index=chunk_index,
+                    collection_name=collection_name,
                 )
             )
             seen.add(citation_key)
