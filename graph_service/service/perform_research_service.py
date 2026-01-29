@@ -1,8 +1,9 @@
 import asyncio
 import json
 import logging
-from typing import Optional
 import httpx
+
+from typing import Optional
 
 from langchain_core.messages import (
     AIMessage,
@@ -12,7 +13,7 @@ from langchain_core.messages import (
 )
 
 from llm.claude_client import claude_client
-from graph_service.model.perform_research import (
+from model.perform_research import (
     PerformResearchInput,
     PerformResearchOutput,
 )

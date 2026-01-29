@@ -19,10 +19,14 @@
         condition_two and
         condition_three
     ):
-        # code block
+        do_something()
     ```
 
 ## Scope & Completeness
 
 - **Implement only what is requested**: Generate code that directly addresses the user's request without adding extra features or enhancements not mentioned.
 - **Use TODO stubs for gaps**: If the user's request results in incomplete code or missing implementations, mark these with concise `TODO` comments indicating what needs to be filled in later.
+
+## Project-Specific Rules
+
+- **Imports**: When importing a module, do not include the service prefix. For example, instead of `from graph_service.my_model.my_file`, use `from my_model.my_file`. This is because each "service" is designed to be independently deployable and should not rely on the service namespace in imports.

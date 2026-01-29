@@ -12,7 +12,7 @@ from model.process_selection import (
 from model.simple_process import (
     SimpleProcessInput,
 )
-from graph_service.model.perform_research import (
+from model.perform_research import (
     PerformResearchInput,
 )
 from service.process_selection_service import (
@@ -21,7 +21,7 @@ from service.process_selection_service import (
 from service.simple_process_service import (
     execute_simple_process,
 )
-from graph_service.service.perform_research_service import (
+from service.perform_research_service import (
     execute_tasks_in_parallel,
     execute_tasks_in_sequence,
 )
