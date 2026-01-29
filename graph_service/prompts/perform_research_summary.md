@@ -1,8 +1,8 @@
 # Summary Synthesis
 
-You have executed multiple independent tasks to
-address a research query. The results of each task
-are available in the conversation history above.
+You have executed multiple tasks to address a
+research query. The results of each task are
+available in the conversation history above.
 
 ## Instructions
 
@@ -11,7 +11,8 @@ the findings from all completed tasks. Your summary
 should:
 
 1. Synthesize key findings across all tasks
-2. Highlight patterns or connections between results
+2. Identify patterns, connections, or logical
+   progressions between results
 3. Provide a cohesive narrative addressing the
    original query
 

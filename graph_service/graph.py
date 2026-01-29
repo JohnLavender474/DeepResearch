@@ -12,8 +12,8 @@ from model.process_selection import (
 from model.simple_process import (
     SimpleProcessInput,
 )
-from model.parallel_synthesis import (
-    ParallelSynthesisInput,
+from graph_service.model.perform_research import (
+    PerformResearchInput,
 )
 from service.process_selection_service import (
     select_process,
@@ -21,8 +21,9 @@ from service.process_selection_service import (
 from service.simple_process_service import (
     execute_simple_process,
 )
-from service.parallel_synthesis_service import (
-    execute_parallel_synthesis,
+from graph_service.service.perform_research_service import (
+    execute_tasks_in_parallel,
+    execute_tasks_in_sequence,
 )
 
 
@@ -69,22 +70,45 @@ async def node_simple_process(state: GraphState) -> GraphState:
     return state
 
 
-async def node_parallel_synthesis(
+async def node_parallel_tasks(
     state: GraphState,
 ) -> GraphState:
-    input_data = ParallelSynthesisInput(
-        query=state.user_query,        
+    input_data = PerformResearchInput(
+        query=state.user_query,
         collection_name=state.profile_id,
     )
-    output = await execute_parallel_synthesis(input_data)
+    output = await execute_tasks_in_parallel(input_data)
 
     state.current_result = output.overall_result
     state.steps.append(
         GraphStep(
-            type="parallel_synthesis",
+            type="parallel_tasks",
             details={
-                "input": input_data.model_dump(),                
-                "output": output.model_dump(),                
+                "input": input_data.model_dump(),
+                "output": output.model_dump(),
+            },
+        )
+    )
+
+    return state
+
+
+async def node_sequential_tasks(
+    state: GraphState,
+) -> GraphState:
+    input_data = PerformResearchInput(
+        query=state.user_query,
+        collection_name=state.profile_id,
+    )
+    output = await execute_tasks_in_sequence(input_data)
+
+    state.current_result = output.overall_result
+    state.steps.append(
+        GraphStep(
+            type="sequential_tasks",
+            details={
+                "input": input_data.model_dump(),
+                "output": output.model_dump(),
             },
         )
     )
@@ -94,13 +118,15 @@ async def node_parallel_synthesis(
 
 def route_by_process_selection(
     state: GraphState,
-) -> Literal["simple_process", "parallel_synthesis", "end"]:
+) -> Literal["simple_process", "parallel_tasks", "sequential_tasks", "end"]:
     process_type = state.process_selection.process_type
 
     if process_type == "simple_process":
         return "simple_process"
-    elif process_type == "parallel_synthesis":
-        return "parallel_synthesis"
+    elif process_type == "parallel_tasks":
+        return "parallel_tasks"
+    elif process_type == "sequential_tasks":
+        return "sequential_tasks"
 
     return "end"
 
@@ -110,18 +136,21 @@ def build_graph() -> StateGraph:
 
     graph.add_node("process_selection", node_process_selection)
     graph.add_node("simple_process", node_simple_process)
-    graph.add_node("parallel_synthesis", node_parallel_synthesis)
+    graph.add_node("parallel_tasks", node_parallel_tasks)
+    graph.add_node("sequential_tasks", node_sequential_tasks)
 
     graph.add_edge(START, "process_selection")
     graph.add_edge("simple_process", END)
-    graph.add_edge("parallel_synthesis", END)
+    graph.add_edge("parallel_tasks", END)
+    graph.add_edge("sequential_tasks", END)
 
     graph.add_conditional_edges(
         "process_selection",
         route_by_process_selection,
         {
             "simple_process": "simple_process",
-            "parallel_synthesis": "parallel_synthesis",
+            "parallel_tasks": "parallel_tasks",
+            "sequential_tasks": "sequential_tasks",
             "end": END,
         }
     )

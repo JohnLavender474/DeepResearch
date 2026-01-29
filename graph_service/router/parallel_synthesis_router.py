@@ -1,11 +1,11 @@
 from fastapi import APIRouter
 
-from model.parallel_synthesis import (
-    ParallelSynthesisInput,
-    ParallelSynthesisOutput,
+from model.perform_research import (
+    PerformResearchInput,
+    PerformResearchOutput,
 )
-from service.parallel_synthesis_service import (
-    execute_parallel_synthesis,
+from service.perform_research_service import (
+    execute_tasks_in_parallel,
 )
 
 
@@ -14,9 +14,9 @@ router = APIRouter(prefix="/api/graph", tags=["graph"])
 
 @router.post(
     "/parallel-synthesis/execute",
-    response_model=ParallelSynthesisOutput,
+    response_model=PerformResearchOutput,
 )
 async def parallel_synthesis_execute(
-    input_data: ParallelSynthesisInput,
-) -> ParallelSynthesisOutput:
-    return await execute_parallel_synthesis(input_data)
+    input_data: PerformResearchInput,
+) -> PerformResearchOutput:
+    return await execute_tasks_in_parallel(input_data)

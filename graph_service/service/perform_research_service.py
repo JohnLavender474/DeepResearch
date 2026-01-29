@@ -1,17 +1,20 @@
 import asyncio
 import json
 import logging
+from typing import Optional
 import httpx
 
 from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
     HumanMessage,
     SystemMessage,
 )
 
 from llm.claude_client import claude_client
-from model.parallel_synthesis import (
-    ParallelSynthesisInput,
-    ParallelSynthesisOutput,
+from graph_service.model.perform_research import (
+    PerformResearchInput,
+    PerformResearchOutput,
 )
 from model.task import (
     TaskDecomposition,
@@ -26,17 +29,19 @@ from model.semantic_search_query import (
 from utils.prompt_loader import load_prompt
 
 
-
 logger = logging.getLogger(__name__)
 
 
-async def execute_parallel_synthesis(
-    input_data: ParallelSynthesisInput,
-) -> ParallelSynthesisOutput:
-    logger.debug(f"Starting parallel synthesis for query: {input_data.query}")
+async def _decompose_tasks(
+    input_data: PerformResearchInput,
+    execution_type: str
+) -> TaskDecomposition:
+    logger.debug(f"Starting task decomposition for query: {input_data.query}")
+
     decomposition_prompt = load_prompt(
-        "parallel_synthesis_decomposition.md",
-    )
+        f"{execution_type}_task_decomposition.md",
+    )        
+    
     formatted_decomposition_prompt = (
         decomposition_prompt.format(
             input_data=json.dumps(
@@ -57,26 +62,15 @@ async def execute_parallel_synthesis(
     )
     logger.debug(f"Task decomposition complete. Number of tasks: {len(decomposition.tasks)}")
 
-    task_execution_prompt = load_prompt(
-        "task_execution.md",
-    )
+    return decomposition
 
-    task_coroutines = [
-        _execute_task(
-            task,
-            task_execution_prompt,            
-            input_data.collection_name,
-        )
-        for task in decomposition.tasks
-    ]
 
-    task_entries = await asyncio.gather(
-        *task_coroutines,
-    )
-    logger.debug(f"All tasks executed. Successful: {sum(1 for e in task_entries if e.success)}, Failed: {sum(1 for e in task_entries if not e.success)}")
-
+async def _summarize_task_entries(
+    task_entries: list[TaskEntry],
+) -> str:
+    logger.debug("Summarizing task entries")
     summary_prompt = load_prompt(
-        "parallel_synthesis_summary.md",
+        "perform_research_summary.md",
     )
 
     summary_response = await claude_client.ainvoke(
@@ -92,11 +86,81 @@ async def execute_parallel_synthesis(
         output_type=TaskResult,
     )
 
-    result = summary_response.result
-    logger.debug("Parallel synthesis completed successfully")
+    logger.debug("Task summarization completed")
+    return summary_response.result
 
-    return ParallelSynthesisOutput(
-        overall_result=result,
+
+async def execute_tasks_in_parallel(
+    input_data: PerformResearchInput,
+) -> PerformResearchOutput:
+    logger.debug(f"Starting parallel task execution for query: {input_data.query}")
+
+    decomposition = await _decompose_tasks(input_data, execution_type="parallel")
+
+    task_execution_prompt = load_prompt(
+        "task_execution.md",
+    )
+
+    task_coroutines = [
+        _execute_task(
+            task=task,
+            prompt=task_execution_prompt,
+            collection_name=input_data.collection_name,            
+        )
+        for task in decomposition.tasks
+    ]
+
+    task_entries = await asyncio.gather(
+        *task_coroutines,
+    )
+    logger.debug(f"All tasks executed. Successful: {sum(1 for e in task_entries if e.success)}, Failed: {sum(1 for e in task_entries if not e.success)}")
+
+    overall_result = await _summarize_task_entries(task_entries)
+
+    return PerformResearchOutput(
+        overall_result=overall_result,
+        task_entries=task_entries,
+    )
+
+
+async def execute_tasks_in_sequence(
+    input_data: PerformResearchInput,
+) -> PerformResearchOutput:
+    logger.debug(f"Starting sequential task execution for query: {input_data.query}")
+
+    decomposition = await _decompose_tasks(input_data, execution_type="sequential")
+
+    task_execution_prompt = load_prompt(
+        "task_execution.md",
+    )
+
+    task_entries = []
+    chat_history: list[BaseMessage] = []
+
+    for task in decomposition.tasks:
+        logger.debug(f"Executing task sequentially: {task}")
+        task_entry = await _execute_task(
+            task=task,
+            chat_history=chat_history,
+            prompt=task_execution_prompt,
+            collection_name=input_data.collection_name,            
+        )
+        task_entries.append(task_entry)
+
+        if task_entry.success:
+            chat_history.append(
+                HumanMessage(content=(task_entry.task))
+            )
+            chat_history.append(
+                AIMessage(content=(task_entry.result))
+            )
+
+    logger.debug(f"All tasks executed sequentially. Successful: {sum(1 for e in task_entries if e.success)}, Failed: {sum(1 for e in task_entries if not e.success)}")
+
+    overall_result = await _summarize_task_entries(task_entries)
+
+    return PerformResearchOutput(
+        overall_result=overall_result,
         task_entries=task_entries,
     )
 
@@ -162,24 +226,31 @@ async def _search_documents(
 def _format_document_context(
     search_query: str,
     documents: list[SearchResult],
+    chat_history: Optional[list[BaseMessage]] = None,
 ) -> str:
-    logger.debug(f"Formatting context for {len(documents)} documents")    
+    logger.debug(f"Formatting context for {len(documents)} documents")
+    context_parts = []
+
+    if chat_history:
+        context_parts.append("## Prior Context")
+        for msg in chat_history:
+            if isinstance(msg, HumanMessage):
+                context_parts.append(msg.content)
+        context_parts.append("")
+
     if not documents:
         logger.debug(f"No documents found for search query: {search_query}")
-        return (
-            f"No documents found for search query: "
-            f"{search_query}"
+        context_parts.append(
+            f"No documents found for search query: {search_query}"
         )
+    else:
+        context_parts.append(f"Based on search results for: {search_query}")
+        context_parts.append("")
+        context_parts.append("Retrieved documents:")
 
-    context_parts = [
-        f"Based on search results for: {search_query}",
-        "",
-        "Retrieved documents:",
-    ]
-
-    for i, doc in enumerate(documents, 1):
-        content = doc.metadata.content
-        context_parts.append(f"{i}. {content}")
+        for i, doc in enumerate(documents, 1):
+            content = doc.metadata.content
+            context_parts.append(f"{i}. {content}")
 
     return "\n".join(context_parts)
 
@@ -188,7 +259,7 @@ def _extract_citations(
     collection_name: str,
     documents: list[SearchResult],
 ) -> list[TaskCitation]:
-    logger.debug(f"Extracting citations from {len(documents)} documents")    
+    logger.debug(f"Extracting citations from {len(documents)} documents")
     citations: list[TaskCitation] = []
     seen: set[tuple[str, str, int]] = set()
 
@@ -201,8 +272,8 @@ def _extract_citations(
 
         if citation_key not in seen:
             citations.append(
-                TaskCitation(              
-                    content=content,      
+                TaskCitation(
+                    content=content,
                     filename=filename,
                     chunk_index=chunk_index,
                     collection_name=collection_name,
@@ -216,8 +287,9 @@ def _extract_citations(
 
 async def _execute_task(
     task: str,
-    prompt: str,    
+    prompt: str,
     collection_name: str,
+    chat_history: Optional[list[BaseMessage]] = None,
 ) -> TaskEntry:
     logger.debug(f"Executing task: {task}")
     try:
@@ -236,21 +308,37 @@ async def _execute_task(
         document_context = _format_document_context(
             search_query,
             documents,
+            chat_history,
         )
 
         formatted_prompt = prompt.format(task=task)
 
+        messages: list[BaseMessage] = []
+
+        system_message_str = (
+            f"{formatted_prompt}\n\n"
+            f"## Document Context\n\n"
+            f"{document_context}"
+        )
+
+        if chat_history:
+            chat_history_str = "\n".join(
+                f"{msg.type}: {msg.content}"
+                for msg in chat_history
+            )
+            system_message_str += (
+                "\n\n## Chat History\n\n"          
+                f"{chat_history_str}"
+            )
+
+        messages.append(
+            SystemMessage(content=(system_message_str))
+        )
+
+        messages.append(HumanMessage(content=task))
+
         output = await claude_client.ainvoke(
-            input=([
-                SystemMessage(
-                    content=(
-                        f"{formatted_prompt}\n\n"
-                        f"## Relevant Context\n\n"
-                        f"{document_context}"
-                    ),
-                ),
-                HumanMessage(content=task),
-            ]),
+            input=messages,
             output_type=TaskResult,
         )
 

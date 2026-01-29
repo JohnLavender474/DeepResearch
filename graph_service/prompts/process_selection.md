@@ -22,12 +22,11 @@ selecting the most appropriate processing strategy.
    distinct aspects of a topic simultaneously.
 
 3. **sequential_synthesis**: Use this for queries that
-   require step-by-step reasoning with intermediary
-   decision points. This process allows for user
-   feedback at key junctures, where the user can guide
-   the reasoning direction or provide clarifications.
-   Each step builds on the previous one, and the final
-   answer is synthesized from this guided process.
+   require step-by-step sequential processing where
+   later tasks depend on the results or answers from
+   earlier tasks. Each step must be completed before
+   the next can begin because subsequent tasks rely on
+   prior results.
 
 ## Conversation Context
 
@@ -35,11 +34,10 @@ Analyze the message history carefully. The
 conversation context may indicate a preference for
 a particular process:
 
-- If the conversation shows a pattern of **guided,
-  iterative reasoning** where each response builds on
-  prior steps or the assistant has been explicitly
-  guiding the user through a process, skew toward
-  **sequential_synthesis**.
+- If the conversation shows a pattern of **task
+  dependencies** where each response builds on prior
+  steps and later tasks depend on earlier results,
+  skew toward **sequential_synthesis**.
 
 - If the conversation shows a pattern of **independent
   topic exploration** or **parallel analysis** of
