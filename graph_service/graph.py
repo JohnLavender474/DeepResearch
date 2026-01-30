@@ -1,3 +1,5 @@
+import logging
+
 from typing import Literal
 
 from langgraph.graph import StateGraph, START, END
@@ -27,13 +29,18 @@ from service.perform_research_service import (
 )
 
 
+logger = logging.getLogger(__name__)
+
+
 async def node_process_selection(state: GraphState) -> GraphState:
+    logger.debug("Starting process selection node")
     input_data = ProcessSelectionInput(
         user_query=state.user_query,
         messages=state.messages,
     )
 
     output = await select_process(input_data)
+    logger.debug(f"Process type selected: {output.process_type}")
 
     state.process_selection = output
     state.steps.append(
@@ -50,11 +57,14 @@ async def node_process_selection(state: GraphState) -> GraphState:
 
 
 async def node_simple_process(state: GraphState) -> GraphState:
+    logger.debug("Starting simple process node")
     input_data = SimpleProcessInput(
         query=state.user_query,
         messages=state.messages,
     )
+
     output = await execute_simple_process(input_data)
+    logger.debug(f"Simple process result: {output.result}")
 
     state.current_result = output.result
     state.steps.append(
@@ -73,11 +83,14 @@ async def node_simple_process(state: GraphState) -> GraphState:
 async def node_parallel_tasks(
     state: GraphState,
 ) -> GraphState:
+    logger.debug("Starting parallel tasks node")
     input_data = PerformResearchInput(
         query=state.user_query,
         collection_name=state.profile_id,
     )
+    
     output = await execute_tasks_in_parallel(input_data)
+    logger.debug(f"Parallel tasks output: {output.model_dump()}")
 
     state.current_result = output.overall_result
     state.steps.append(
@@ -96,11 +109,14 @@ async def node_parallel_tasks(
 async def node_sequential_tasks(
     state: GraphState,
 ) -> GraphState:
+    logger.debug("Starting sequential tasks node")
     input_data = PerformResearchInput(
         query=state.user_query,
         collection_name=state.profile_id,
     )
+    
     output = await execute_tasks_in_sequence(input_data)
+    logger.debug(f"Sequential tasks output: {output.model_dump()}")
 
     state.current_result = output.overall_result
     state.steps.append(
