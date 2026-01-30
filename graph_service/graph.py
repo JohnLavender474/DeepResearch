@@ -1,6 +1,6 @@
 import logging
 
-from typing import Literal
+from typing import Literal, Optional
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
@@ -211,31 +211,57 @@ def route_by_process_selection(
     raise ValueError(f"Unknown process type: {process_type}")
 
 
-def build_graph() -> CompiledStateGraph:
+GRAPH_STRUCTURE = {
+    "nodes": {
+        "process_selection": node_process_selection,
+        "simple_process": node_simple_process,
+        "parallel_tasks": node_parallel_tasks,
+        "sequential_tasks": node_sequential_tasks,
+        "perform_review": node_perform_review,
+        "generate_summary": node_generate_summary,
+    },
+    "edges": [
+        ("simple_process", END),
+        ("parallel_tasks", "perform_review"),
+        ("sequential_tasks", "perform_review"),
+        ("perform_review", "generate_summary"),
+        ("generate_summary", END),
+    ],
+    "conditional_edges": [
+        {
+            "source": "process_selection",
+            "path": route_by_process_selection,
+            "path_map": {
+                "simple_process": "simple_process",
+                "parallel_tasks": "parallel_tasks",
+                "sequential_tasks": "sequential_tasks",
+            },
+        },
+    ],
+}
+
+
+DEFAULT_START_NODE = "process_selection"
+
+
+def build_graph(
+    start_node: Optional[str] = None
+) -> CompiledStateGraph:
     graph = StateGraph(GraphState)
 
-    graph.add_node("process_selection", node_process_selection)
-    graph.add_node("simple_process", node_simple_process)
-    graph.add_node("parallel_tasks", node_parallel_tasks)
-    graph.add_node("sequential_tasks", node_sequential_tasks)
-    graph.add_node("perform_review", node_perform_review)
-    graph.add_node("generate_summary", node_generate_summary)
+    for node_name, node_func in GRAPH_STRUCTURE["nodes"].items():
+        graph.add_node(node_name, node_func)
 
-    graph.add_edge(START, "process_selection")
-    graph.add_edge("simple_process", END)
-    graph.add_edge("parallel_tasks", "perform_review")
-    graph.add_edge("sequential_tasks", "perform_review")
-    graph.add_edge("perform_review", "generate_summary")
-    graph.add_edge("generate_summary", END)
+    graph.add_edge(START, start_node or DEFAULT_START_NODE)
 
-    graph.add_conditional_edges(
-        "process_selection",
-        route_by_process_selection,
-        {
-            "simple_process": "simple_process",
-            "parallel_tasks": "parallel_tasks",
-            "sequential_tasks": "sequential_tasks",            
-        }
-    )
+    for source, target in GRAPH_STRUCTURE["edges"]:
+        graph.add_edge(source, target)
+
+    for conditional_edge in GRAPH_STRUCTURE["conditional_edges"]:
+        graph.add_conditional_edges(
+            conditional_edge["source"],
+            conditional_edge["path"],
+            conditional_edge["path_map"],
+        )
 
     return graph.compile()

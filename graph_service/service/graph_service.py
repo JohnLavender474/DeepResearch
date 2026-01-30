@@ -85,9 +85,15 @@ async def stream_graph(
             messages=graph_state_messages,
         )
 
-        # Build the graph and instantiate streaming coroutine
+        # Build the graph and instantiate a streaming coroutine.
+        # If the input data specifies a custom start node, then
+        # use that as the start node for the graph. However, if
+        # the value is `None`, then the graph will use a default
+        # start node.
         
-        graph: CompiledStateGraph = build_graph()
+        graph: CompiledStateGraph = build_graph(
+            start_node=input_data.custom_start_node
+        )
 
         graph_stream = graph.astream(
             input=graph_state,

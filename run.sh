@@ -8,6 +8,10 @@ else
     echo "Qdrant is already running. (If not running on port 6333, please stop the existing container and restart this script.)"
 fi
 
+# Start PostgreSQL
+echo "Starting database service..."
+(cd database_service && bash run.sh)
+
 # Remove old virtual environment
 rm -rf venv
 
