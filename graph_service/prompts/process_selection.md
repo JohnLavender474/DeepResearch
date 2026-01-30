@@ -10,7 +10,7 @@ selecting the most appropriate processing strategy.
    with a single LLM invocation. No decomposition or
    special handling is needed.
 
-2. **parallel_synthesis**: Use this for queries that
+2. **parallel_tasks**: Use this for queries that
    can be decomposed into multiple independent sub-tasks
    that are solved simultaneously in parallel. Each
    sub-task operates independently without dependencies
@@ -21,7 +21,7 @@ selecting the most appropriate processing strategy.
    tasks that involve gathering information on several
    distinct aspects of a topic simultaneously.
 
-3. **sequential_synthesis**: Use this for queries that
+3. **sequential_tasks**: Use this for queries that
    require step-by-step sequential processing where
    later tasks depend on the results or answers from
    earlier tasks. Each step must be completed before
@@ -37,11 +37,11 @@ a particular process:
 - If the conversation shows a pattern of **task
   dependencies** where each response builds on prior
   steps and later tasks depend on earlier results,
-  skew toward **sequential_synthesis**.
+  skew toward **sequential_tasks**.
 
 - If the conversation shows a pattern of **independent
   topic exploration** or **parallel analysis** of
-  distinct aspects, skew toward **parallel_synthesis**.
+  distinct aspects, skew toward **parallel_tasks**.
 
 - If this is the first message or the conversation
   is disconnected from the current query, treat the

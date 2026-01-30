@@ -6,8 +6,8 @@ from langchain_core.messages import BaseMessage
 
 ProcessType = Literal[
     "simple_process",
-    "parallel_synthesis",
-    "sequential_synthesis",
+    "parallel_tasks",
+    "sequential_tasks",
 ]
 
 

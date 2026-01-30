@@ -144,8 +144,8 @@ def route_by_process_selection(
         return "parallel_tasks"
     elif process_type == "sequential_tasks":
         return "sequential_tasks"
-
-    return "end"
+    
+    raise ValueError(f"Unknown process type: {process_type}")
 
 
 def build_graph() -> CompiledStateGraph:
@@ -167,8 +167,7 @@ def build_graph() -> CompiledStateGraph:
         {
             "simple_process": "simple_process",
             "parallel_tasks": "parallel_tasks",
-            "sequential_tasks": "sequential_tasks",
-            "end": END,
+            "sequential_tasks": "sequential_tasks",            
         }
     )
 

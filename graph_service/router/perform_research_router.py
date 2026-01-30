@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/graph/perform_research", tags=["graph"])
     "/parallel/execute",
     response_model=PerformResearchOutput,
 )
-async def parallel_synthesis_execute(
+async def parallel_tasks_execute(
     input_data: PerformResearchInput,
 ) -> PerformResearchOutput:
     return await execute_tasks_in_parallel(input_data)
@@ -27,7 +27,7 @@ async def parallel_synthesis_execute(
     "/sequential/execute",
     response_model=PerformResearchOutput,
 )
-async def sequential_synthesis_execute(
+async def sequential_tasks_execute(
     input_data: PerformResearchInput,
 ) -> PerformResearchOutput:
     return await execute_tasks_in_sequence(input_data)
