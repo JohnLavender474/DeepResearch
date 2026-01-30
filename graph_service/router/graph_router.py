@@ -2,23 +2,18 @@ import json
 import uuid
 
 from fastapi import APIRouter
+from fastapi.responses import StreamingResponse
 
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
     AIMessage,
 )
+from langgraph.graph.state import CompiledStateGraph
 
 from graph import build_graph
 from model.graph_input import GraphInput
 from model.graph_state import GraphState
-from model.graph_invocation import (
-    GraphInvocation,
-    GraphInvocationState,
-)
-from repository.graph_invocation_repository import (
-    GraphInvocationsRepository
-)
 
 from logging import logger
 
@@ -28,30 +23,24 @@ logger = logger.getLogger(__name__)
 router = APIRouter(prefix="/api/graph", tags=["graph"])
 
 
-invocations_repo = GraphInvocationsRepository()
+_invocations: set[str] = set()
 
 
-@router.post(
-    "/execute",
-    response_model=GraphState,
-)
-async def invoke_graph(
+async def _stream_graph(
     input_data: GraphInput,
-) -> GraphState:
-    logger.debug(
-        f"Graph invocation requested for query: " 
-        f"{json.dumps(input_data, indent=2)}"
-    )
-
+):
     invocation_id = str(uuid.uuid4())
-    invocation = GraphInvocation(
-        invocation_id=invocation_id,        
-    )
-    invocations_repo.put_invocation(invocation)
+    _invocations.add(invocation_id)
 
     logger.debug(f"Graph invocation id: {invocation_id}")
 
     try:
+        event_data = {
+            "invocation_id": invocation_id,
+            "event_type": "graph_start",
+        }
+        yield f"data: {json.dumps(event_data)}\n\n"
+
         graph_state_messages: list[BaseMessage] = []
 
         for message in input_data.messages:
@@ -72,30 +61,57 @@ async def invoke_graph(
             messages=graph_state_messages,
         )
         
-        graph = build_graph()
+        graph: CompiledStateGraph = build_graph()
 
-        result = await graph.ainvoke(state)
+        async for event in graph.astream(
+            input=state, 
+            stream_mode=["updates", "custom"]
+        ):
+            event_data = {
+                "invocation_id": invocation_id,
+                "event_type": "node_complete",            
+                "event_data": event.data.model_dump()
+            }                  
+            yield f"data: {json.dumps(event_data)}\n\n"
 
         logger.debug(
-            f"Graph execution completed with result: " 
-            f"{json.dumps(result, indent=2)}"
+            "Graph execution completed successfully"
         )
 
-        invocation.invocation_state = (
-            GraphInvocationState.COMPLETED
-        )
-        invocation.graph_state = result
-        invocations_repo.put_invocation(invocation)
-        
-        return result
+        completion_event = {
+            "invocation_id": invocation_id,
+            "event_type": "graph_complete",            
+        }
+        yield f"data: {json.dumps(completion_event)}\n\n"
+
     except Exception as e:
         logger.error(
             f"Graph invocation {invocation_id} failed: {str(e)}"
         )
-
-        invocation.invocation_state = (
-            GraphInvocationState.FAILED
-        )
-        invocations_repo.put_invocation(invocation)
         
-        raise e
+        error_event = {
+            "invocation_id": invocation_id,
+            "event_type": "error",
+            "event_data": {                
+                "error": str(e),
+            },
+        }
+        yield f"data: {json.dumps(error_event)}\n\n"
+
+    finally:
+        _invocations.discard(invocation_id)
+
+
+@router.post("/execute")
+async def invoke_graph(
+    input_data: GraphInput,
+) -> StreamingResponse:
+    logger.debug(
+        f"Graph invocation requested for query: " 
+        f"{json.dumps(input_data, indent=2)}"
+    )
+    
+    return StreamingResponse(
+        _stream_graph(input_data),
+        media_type="text/event-stream",
+    )

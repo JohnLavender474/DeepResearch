@@ -3,6 +3,7 @@ import logging
 from typing import Literal
 
 from langgraph.graph import StateGraph, START, END
+from langgraph.graph.state import CompiledStateGraph
 
 from model.graph_state import (
     GraphState,
@@ -147,7 +148,7 @@ def route_by_process_selection(
     return "end"
 
 
-def build_graph() -> StateGraph:
+def build_graph() -> CompiledStateGraph:
     graph = StateGraph(GraphState)
 
     graph.add_node("process_selection", node_process_selection)
