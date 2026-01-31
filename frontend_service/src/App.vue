@@ -21,7 +21,11 @@ import { RouterLink, RouterView } from 'vue-router'
 header {
   background-color: #2c3e50;
   padding: 1rem 2rem;
-  margin-bottom: 2rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
 }
 
 nav {
@@ -46,6 +50,7 @@ nav a.router-link-active {
 
 main {
   padding: 0 2rem;
+  padding-top: 4rem;
   max-width: 1200px;
   margin: 0 auto;
 }
