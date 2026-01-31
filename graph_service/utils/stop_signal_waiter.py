@@ -1,6 +1,9 @@
 import asyncio
 
-from typing import Callable
+from typing import (
+    Callable,
+    Awaitable,
+)
 
 
 class StopSignalWaiter:
@@ -17,10 +20,10 @@ class StopSignalWaiter:
     
     async def run(
         self,
-        stop_condition: Callable[[], bool]
+        stop_condition: Callable[[], Awaitable[bool]]
     ) -> bool:
         while self.time_elapsed < self.max_time:
-            if stop_condition():                
+            if await stop_condition():                
                 return True
             
             await asyncio.sleep(self.poll_interval)

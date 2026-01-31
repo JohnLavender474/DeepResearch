@@ -5,9 +5,11 @@ from pydantic import BaseModel
 
 
 class InvocationCreate(BaseModel):
-    invocation_id: str    
+    invocation_id: str
+    profile_id: str
     user_query: str
     status: str = "running"
+    graph_state: Optional[dict] = None
 
 
 class InvocationUpdate(BaseModel):

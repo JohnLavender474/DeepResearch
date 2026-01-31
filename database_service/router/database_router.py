@@ -44,7 +44,13 @@ def create_invocation(
     profile_id: str,
     invocation: InvocationCreate,
     db: Session = Depends(get_db),
-):      
+):
+    if invocation.profile_id != profile_id:
+        raise HTTPException(
+            status_code=400,
+            detail="Profile ID in URL does not match profile ID in request body",
+        )
+    
     logger.info(
         f"Creating invocation {invocation.invocation_id} "
         f"for profile {profile_id}"

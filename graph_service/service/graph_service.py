@@ -81,14 +81,19 @@ async def stream_graph(
         # Create invocation record in database
 
         try:
-            await database_client.create_invocation(
+            created_invocation = await database_client.create_invocation(
                 profile_id=input_data.profile_id,
                 invocation_id=invocation_id,
                 user_query=input_data.user_query,
                 status="running",
+                graph_state=graph_state.model_dump(),
+            )
+            logger.info(
+                f"Created database record for invocation {invocation_id} "
+                f"with status: {created_invocation.get('status')}"
             )
         except Exception as e:
-            logger.warning(
+            logger.error(
                 f"Failed to create invocation in database: {str(e)}"
             )
             raise
@@ -120,7 +125,16 @@ async def stream_graph(
                     profile_id=input_data.profile_id,
                     invocation_id=invocation_id,
                 )
-                return invocation.get("status") == "stop_requested"
+                status = invocation.get("status")
+                is_stop_requested = status == "stop_requested"
+                
+                if is_stop_requested:
+                    logger.info(
+                        f"Stop requested detected for invocation {invocation_id}, "
+                        f"status={status}"
+                    )
+                
+                return is_stop_requested
             except Exception as e:
                 logger.warning(
                     f"Failed to check stop status from database: {str(e)}"
@@ -133,7 +147,9 @@ async def stream_graph(
         )
 
         stop_task = asyncio.ensure_future(
-            stop_signal_waiter.run(check_stop_requested)
+            stop_signal_waiter.run(
+                stop_condition=check_stop_requested
+            )
         )        
 
         # Record the elapsed time on the current node to complete.
@@ -157,7 +173,12 @@ async def stream_graph(
                     f"time threshold on current node"
                 )                
                 raise DeepResearchInvocationStoppedException(
-                    invocation_id=invocation_id
+                    invocation_id=invocation_id,
+                    message=(
+                        f"Node execution exceeded maximum time threshold: "
+                        f"node_start_time={node_start_time}, "
+                        f"node_elapsed_time={node_elapsed_time}"
+                    )
                 )
 
             # If there is no pending task, then start the next
@@ -193,7 +214,8 @@ async def stream_graph(
                     f"Graph invocation {invocation_id} received stop signal"
                 )                
                 raise DeepResearchInvocationStoppedException(
-                    invocation_id=invocation_id
+                    invocation_id=invocation_id,
+                    message="Stop signal received from user",
                 )
             
             # If the pending graph node task is done, then yield
@@ -307,14 +329,17 @@ async def stream_graph(
             )
             raise
 
-    except DeepResearchInvocationStoppedException:
+    except DeepResearchInvocationStoppedException as e:
         logger.info(
-            f"Graph invocation {invocation_id} was stopped by user."
+            f"Graph invocation {invocation_id} was stopped: {str(e)}"
         )
 
         event_data = {
             "invocation_id": invocation_id,
             "event_type": "stopped",
+            "event_data": {
+                "message": str(e),
+            },
         }
         yield f"data: {json.dumps(event_data)}\n\n"
 

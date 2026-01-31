@@ -19,6 +19,7 @@ def create_invocation(
         profile_id=profile_id,
         user_query=invocation.user_query,
         status=invocation.status,
+        graph_state=invocation.graph_state,
     )
     db.add(db_invocation)
     db.commit()

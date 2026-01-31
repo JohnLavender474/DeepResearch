@@ -34,6 +34,7 @@ async def create_invocation(
     invocation_id: str,
     user_query: str,
     status: str = "running",
+    graph_state: Optional[dict] = None,
 ):
     url = f"{DATABASE_SERVICE_URL}/{profile_id}/invocations"
     
@@ -42,6 +43,7 @@ async def create_invocation(
         "profile_id": profile_id,
         "user_query": user_query,
         "status": status,
+        "graph_state": graph_state,
     }
     
     try:
