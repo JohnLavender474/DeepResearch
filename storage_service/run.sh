@@ -28,3 +28,7 @@ if [ "$container_is_running" = false ]; then
 else
     echo "MinIO is already started and running."
 fi
+
+python -m uvicorn app:app --host 0.0.0.0 --port 8002 --reload
+
+echo "Storage service started on port 8002."

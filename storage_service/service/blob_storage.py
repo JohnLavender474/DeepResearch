@@ -83,6 +83,20 @@ class BlobStorage:
         return True
 
 
+    def delete_collection(self, collection_name: str) -> bool:
+        collection_dir = self.storage_path / collection_name
+
+        if not collection_dir.exists():
+            logger.debug(
+                f"Collection directory not found for deletion: {collection_name}"
+            )
+            return False
+
+        shutil.rmtree(collection_dir)
+        logger.info(f"Deleted collection directory: {collection_name}")
+        return True
+
+
     def list_blobs(self, collection_name: str) -> list[str]:
         collection_dir = self.storage_path / collection_name
 
@@ -97,15 +111,3 @@ class BlobStorage:
             f"Listed {len(filenames)} blobs in collection '{collection_name}'"
         )
         return filenames
-
-
-    def delete_collection(self, collection_name: str) -> bool:
-        collection_dir = self.storage_path / collection_name
-
-        if not collection_dir.exists():
-            logger.warning(f"Collection not found: {collection_name}")
-            return False
-
-        shutil.rmtree(collection_dir)
-        logger.info(f"Deleted collection directory: {collection_name}")
-        return True

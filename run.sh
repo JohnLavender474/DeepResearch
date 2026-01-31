@@ -30,11 +30,11 @@ echo "Starting database service..."
 (cd database_service && bash run.sh) &
 database_pid=$!
 
-echo "Starting storage service..."
+echo "Starting storage service on port 8002..."
 (cd storage_service && bash run.sh) &
 storage_pid=$!
 
-echo "Starting embedding service..."
+echo "Starting embedding service on port 8000..."
 (cd embedding_service && bash run.sh) &
 embedding_pid=$!
 

@@ -11,12 +11,10 @@ from fastapi import (
     File,
     Form,
 )
-from fastapi.responses import Response
 
 from model.search_query import SearchQuery
 from client.qdrant_vector_client import QdrantVectorClient
 from service.embedding_service import EmbeddingService
-from service.blob_storage import BlobStorage
 from processor.document_processor import DocumentProcessor
 
 
@@ -105,7 +103,6 @@ async def delete_collection(collection_name: str, request: Request):
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    blob_storage: BlobStorage = request.app.state.blob_storage
 
     if not vector_client.collection_exists(collection_name):
         logger.warning(f"Collection '{collection_name}' does not exist")
@@ -116,9 +113,8 @@ async def delete_collection(collection_name: str, request: Request):
 
     try:
         vector_client.delete_collection(collection_name)
-        logger.debug(f"Deleting blob storage for collection '{collection_name}'")
-        blob_storage.delete_collection(collection_name)
-        return True
+        logger.info(f"Collection '{collection_name}' deleted successfully")
+        return {"status": "ok", "collection": collection_name}
     except Exception as e:
         logger.error(f"Failed to delete collection '{collection_name}': {e}")
         raise HTTPException(
@@ -184,7 +180,6 @@ async def upload_document(
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    blob_storage: BlobStorage = request.app.state.blob_storage
     document_processor: DocumentProcessor = (
         request.app.state.document_processor
     )
@@ -205,12 +200,7 @@ async def upload_document(
         tmp_path = tmp_file.name
 
     try:
-        logger.debug(f"Storing blob for document: {file.filename}")
-        blob_storage.store_blob(
-            collection_name=collection_name,
-            filename=file.filename,
-            file_path=tmp_path
-        )
+        logger.debug(f"Storing blob for document: {file.filename}")       
 
         logger.debug(f"Processing document: {file.filename}")
         points = document_processor.process_document(
@@ -252,7 +242,6 @@ async def replace_document(
     vector_client: QdrantVectorClient = (
         request.app.state.vector_client
     )
-    blob_storage: BlobStorage = request.app.state.blob_storage
     document_processor: DocumentProcessor = (
         request.app.state.document_processor
     )
@@ -311,13 +300,6 @@ async def replace_document(
         tmp_path = tmp_file.name
 
     try:
-        logger.debug(f"Storing blob for document: {file.filename}")
-        blob_storage.store_blob(
-            collection_name=collection_name,
-            filename=file.filename,
-            file_path=tmp_path
-        )
-
         logger.debug(f"Processing document: {file.filename}")
         points = document_processor.process_document(
             file_path=tmp_path,
@@ -468,124 +450,4 @@ async def update_document_metadata(
         raise HTTPException(
             status_code=500,
             detail=f"Failed to update metadata: {e}"
-        )
-
-@router.get("/collections/{collection_name}/blobs")
-async def list_blobs(collection_name: str, request: Request):
-    logger.info(f"List blobs request for collection '{collection_name}'")
-    vector_client: QdrantVectorClient = (
-        request.app.state.vector_client
-    )
-    blob_storage: BlobStorage = request.app.state.blob_storage
-
-    if not vector_client.collection_exists(collection_name):
-        logger.error(f"Collection '{collection_name}' does not exist")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
-        )
-
-    try:
-        blobs = blob_storage.list_blobs(collection_name)
-        logger.info(f"Found {len(blobs)} blobs in collection '{collection_name}'")
-        return {"blobs": blobs, "count": len(blobs)}
-    except Exception as e:
-        logger.error(f"Failed to list blobs: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to list blobs: {e}"
-        )
-
-
-@router.get("/collections/{collection_name}/blobs/{filename}")
-async def get_blob(
-    collection_name: str,
-    filename: str,
-    request: Request
-):
-    logger.info(
-        f"Get blob request for collection '{collection_name}', "
-        f"filename: {filename}"
-    )
-    vector_client: QdrantVectorClient = (
-        request.app.state.vector_client
-    )
-    blob_storage: BlobStorage = request.app.state.blob_storage
-
-    if not vector_client.collection_exists(collection_name):
-        logger.error(f"Collection '{collection_name}' does not exist")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
-        )
-
-    try:
-        blob_content = blob_storage.retrieve_blob(collection_name, filename)
-
-        if blob_content is None:
-            logger.error(f"Blob not found: {filename}")
-            raise HTTPException(
-                status_code=404,
-                detail=f"Blob '{filename}' not found"
-            )
-
-        logger.info(f"Retrieved blob: {filename}")
-        return Response(
-            content=blob_content,
-            media_type="application/octet-stream",
-            headers={
-                "Content-Disposition": f"attachment; filename={filename}"
-            },
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to retrieve blob: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to retrieve blob: {e}"
-        )
-
-
-@router.delete("/collections/{collection_name}/blobs/{filename}")
-async def delete_blob(
-    collection_name: str,
-    filename: str,
-    request: Request
-):
-    logger.info(
-        f"Delete blob request for collection '{collection_name}', "
-        f"filename: {filename}"
-    )
-    vector_client: QdrantVectorClient = (
-        request.app.state.vector_client
-    )
-    blob_storage: BlobStorage = request.app.state.blob_storage
-
-    if not vector_client.collection_exists(collection_name):
-        logger.error(f"Collection '{collection_name}' does not exist")
-        raise HTTPException(
-            status_code=404,
-            detail=f"Collection '{collection_name}' does not exist"
-        )
-
-    try:
-        success = blob_storage.delete_blob(collection_name, filename)
-
-        if not success:
-            logger.error(f"Blob not found: {filename}")
-            raise HTTPException(
-                status_code=404,
-                detail=f"Blob '{filename}' not found"
-            )
-
-        logger.info(f"Deleted blob: {filename}")
-        return {"status": "ok", "filename": filename}
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete blob: {e}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to delete blob: {e}"
         )
