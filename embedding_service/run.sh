@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# Set up logging by redirecting stdout and stderr to a log file
+# and also displaying it in the console.
+
+LOG_DIR="logs"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_FILE="${LOG_DIR}/embedding_service-${TIMESTAMP}.log"
+
+mkdir -p ${LOG_DIR}
+
+exec > >(tee -a "${LOG_FILE}") 2>&1
+
+PORT=8000
+if lsof -i :${PORT} > /dev/null 2>&1; then
+    PID=$(lsof -i :${PORT} -t)
+    echo "Port ${PORT} is in use by process(es): ${PID}"
+    echo "Killing process(es)..."
+    kill -9 ${PID} 2>/dev/null
+fi
+
+# Check if Qdrant Docker container is running; if not, start it.
+
 CONTAINER_NAME="deepresearch_qdrant_db"
 
 running_containers=$(docker ps --format '{{.Names}}')
@@ -22,6 +43,8 @@ if [ "$container_is_running" = false ]; then
 else
     echo "Qdrant is already started and running."
 fi
+
+# Start the embedding service using Uvicorn
 
 python -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload
 

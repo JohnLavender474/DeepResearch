@@ -1,5 +1,26 @@
 #!/bin/bash
 
+# Set up logging by redirecting stdout and stderr to a log file
+# and also displaying it in the console.
+
+LOG_DIR="logs"
+TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+LOG_FILE="${LOG_DIR}/storage_service-${TIMESTAMP}.log"
+
+mkdir -p ${LOG_DIR}
+
+exec > >(tee -a "${LOG_FILE}") 2>&1
+
+PORT=8002
+if lsof -i :${PORT} > /dev/null 2>&1; then
+    PID=$(lsof -i :${PORT} -t)
+    echo "Port ${PORT} is in use by process(es): ${PID}"
+    echo "Killing process(es)..."
+    kill -9 ${PID} 2>/dev/null
+fi
+
+# Check if MinIO Docker container is running; if not, start it.
+
 CONTAINER_NAME="deepresearch_minio_db"
 
 running_containers=$(docker ps --format '{{.Names}}')
@@ -28,6 +49,8 @@ if [ "$container_is_running" = false ]; then
 else
     echo "MinIO is already started and running."
 fi
+
+# Start the storage service using Uvicorn
 
 python -m uvicorn app:app --host 0.0.0.0 --port 8002 --reload
 
