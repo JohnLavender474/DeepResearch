@@ -96,3 +96,66 @@ async def update_invocation(
             f"Failed to update invocation {invocation_id}: {str(e)}"
         )
         raise
+
+
+async def create_stop_request(
+    invocation_id: str,
+):
+    url = f"{DATABASE_SERVICE_URL}/invocation-stop-requests"
+
+    payload = {
+        "invocation_id": invocation_id,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.post(
+                url=url,
+                json=payload,
+            )
+            response.raise_for_status()
+            logger.info(
+                f"Created stop request for invocation {invocation_id}"
+            )
+            return response.json()
+    except Exception as e:
+        logger.error(
+            f"Failed to create stop request for invocation {invocation_id}: {str(e)}"
+        )
+        raise
+
+
+async def check_stop_request_exists(
+    invocation_id: str,
+) -> bool:
+    url = f"{DATABASE_SERVICE_URL}/invocation-stop-requests/{invocation_id}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(url=url)
+            return response.status_code == 200
+    except Exception as e:
+        logger.warning(
+            f"Failed to check stop request for invocation {invocation_id}: {str(e)}"
+        )
+        return False
+
+
+async def delete_stop_request(
+    invocation_id: str,
+):
+    url = f"{DATABASE_SERVICE_URL}/invocation-stop-requests/{invocation_id}"
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.delete(url=url)
+            response.raise_for_status()
+            logger.info(
+                f"Deleted stop request for invocation {invocation_id}"
+            )
+            return True
+    except Exception as e:
+        logger.warning(
+            f"Failed to delete stop request for invocation {invocation_id}: {str(e)}"
+        )
+        return False

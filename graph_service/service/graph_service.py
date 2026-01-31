@@ -116,28 +116,23 @@ async def stream_graph(
         # Set up stop signal waiter which is used to monitor for 
         # stop requests. If a stop is detected, then the waiter
         # will complete its task. The waiter checks the database
-        # for the invocation status - if it's 'stop_requested',
-        # then the graph execution should stop.
+        # for a stop request record for this invocation.
 
         async def check_stop_requested() -> bool:
             try:
-                invocation = await database_client.get_invocation(
-                    profile_id=input_data.profile_id,
+                is_stop_requested = await database_client.check_stop_request_exists(
                     invocation_id=invocation_id,
                 )
-                status = invocation.get("status")
-                is_stop_requested = status == "stop_requested"
-                
+
                 if is_stop_requested:
                     logger.info(
-                        f"Stop requested detected for invocation {invocation_id}, "
-                        f"status={status}"
+                        f"Stop request detected for invocation {invocation_id}"
                     )
-                
+
                 return is_stop_requested
             except Exception as e:
                 logger.warning(
-                    f"Failed to check stop status from database: {str(e)}"
+                    f"Failed to check stop request from database: {str(e)}"
                 )
                 return False
 
@@ -383,8 +378,24 @@ async def stream_graph(
 
     finally:
         try:
+            await database_client.delete_stop_request(
+                invocation_id=invocation_id,
+            )
+            logger.debug(
+                f"Deleted stop request for invocation {invocation_id}"
+            )
+        except Exception as e:
+            logger.debug(
+                f"No stop request was deleted for invocation {invocation_id}: {str(e)}"
+            )
+
+        try:
             if pending_task and not pending_task.done():            
                 pending_task.cancel()
+
+                logger.debug(
+                    f"Cancelled pending task for invocation {invocation_id}"
+                )            
         except Exception:
             logger.error(
                 f"Error cancelling pending task for invocation {invocation_id}"
@@ -393,6 +404,10 @@ async def stream_graph(
         try:
             if stop_task and not stop_task.done():
                 stop_task.cancel()
+
+                logger.debug(
+                    f"Cancelled stop task for invocation {invocation_id}"
+                )
         except Exception:
             logger.error(
                 f"Error cancelling stop task for invocation {invocation_id}"

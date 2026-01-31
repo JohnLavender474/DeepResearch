@@ -14,6 +14,7 @@ from model.invocation import (
     InvocationResponse,
 )
 from service import invocations_service
+from service import invocation_stop_requests_service
 from dependencies import get_db
 
 import logging
@@ -129,35 +130,6 @@ def update_invocation(
         db=db,
         invocation_id=invocation_id,
         invocation_update=invocation_update,
-        profile_id=profile_id,
-    )
-
-    if not updated:
-        raise HTTPException(
-            status_code=404,
-            detail="Invocation not found",
-        )
-
-    return updated
-
-
-@router.post(
-    "/{profile_id}/invocations/{invocation_id}/stop",
-    response_model=InvocationResponse,
-)
-def request_stop_invocation(
-    profile_id: str,
-    invocation_id: str,
-    db: Session = Depends(get_db),
-):
-    logger.info(
-        f"Requesting stop for invocation {invocation_id} for profile {profile_id}"
-    )
-
-    updated = invocations_service.update_invocation(
-        db=db,
-        invocation_id=invocation_id,
-        invocation_update=InvocationUpdate(status="stop_requested"),
         profile_id=profile_id,
     )
 
