@@ -196,13 +196,20 @@ async def upload_document(
             )
 
         async with httpx.AsyncClient() as client:
-            await client.put(
-                f"{DATABASE_SERVICE_URL}/documents-embedded",
-                json={
-                    "filename": file.filename,
-                    "points": json.dumps([point.dict() for point in points]),
-                },
-            )
+            try:
+                await client.put(
+                    f"{DATABASE_SERVICE_URL}/documents-embedded",
+                    json={
+                        "filename": file.filename,
+                        "points": json.dumps([point.dict() for point in points]),
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Failed to record embedded document in database service: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to record embedded document in database service: {e}"
+                )                
 
         logger.info(f"Document '{file.filename}' uploaded and indexed to collection '{collection_name}'")
         return {
@@ -271,10 +278,17 @@ async def delete_document(
         )
 
         async with httpx.AsyncClient() as client:
-            await client.delete(
-                f"{DATABASE_SERVICE_URL}/documents-embedded",
-                params={"filename": source_name},
-            )
+            try:
+                await client.delete(
+                    f"{DATABASE_SERVICE_URL}/documents-embedded",
+                    params={"filename": source_name},
+                )
+            except Exception as e:
+                logger.error(f"Failed to delete embedded document in database service: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to delete embedded document in database service: {e}"
+                )
 
         logger.info(
             f"Successfully deleted {deleted_count} chunks "
@@ -384,13 +398,20 @@ async def replace_document(
             )
 
         async with httpx.AsyncClient() as client:
-            await client.put(
-                f"{DATABASE_SERVICE_URL}/documents-embedded",
-                json={
-                    "filename": file.filename,
-                    "points": json.dumps([point.dict() for point in points]),
-                },
-            )
+            try:
+                await client.put(
+                    f"{DATABASE_SERVICE_URL}/documents-embedded",
+                    json={
+                        "filename": file.filename,
+                        "points": json.dumps([point.dict() for point in points]),
+                    },
+                )
+            except Exception as e:
+                logger.error(f"Failed to record embedded document in database service: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to record embedded document in database service: {e}"
+                )
 
         logger.info(
             f"Document '{file.filename}' replaced in "

@@ -12,6 +12,7 @@ from model.documents_stored_model import DocumentsStoredModel
 
 def create_document_stored(
     db: Session,
+    profile_id: str,
     document: DocumentsStoredCreate,
 ) -> DocumentsStoredResponse:
     uploaded_at = datetime.now(timezone.utc)
@@ -19,10 +20,11 @@ def create_document_stored(
     db_document = DocumentsStoredModel(
         id=str(uuid.uuid4()),
         filename=document.filename,
-        profile_id=document.profile_id,
+        profile_id=profile_id,
         uploaded_at=uploaded_at,
     )
     db.add(db_document)
+    
     db.commit()
     db.refresh(db_document)
 

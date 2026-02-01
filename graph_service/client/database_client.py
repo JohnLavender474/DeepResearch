@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 import httpx
 
 from typing import Optional

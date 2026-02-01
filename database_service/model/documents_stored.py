@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 class DocumentsStoredCreate(BaseModel):
     filename: str
-    profile_id: str
 
 
 class DocumentsStoredResponse(BaseModel):

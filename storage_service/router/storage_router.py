@@ -76,13 +76,25 @@ async def upload_blob(
         )
 
         async with httpx.AsyncClient() as client:
-            await client.post(
-                f"{DATABASE_SERVICE_URL}/documents-stored",
-                json={
-                    "filename": file.filename,
-                    "profile_id": collection_name,
-                },
-            )
+            try:
+                await client.post(
+                    f"{DATABASE_SERVICE_URL}/documents-stored/{collection_name}",
+                    json={
+                        "filename": file.filename,                        
+                    },
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to create document stored entry for "
+                    f"'{file.filename}' in profile '{collection_name}': {e}"
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Failed to create document stored entry for "
+                        f"'{file.filename}' in profile '{collection_name}': {e}"
+                    )
+                )
 
         logger.info(
             f"Uploaded blob: {file.filename} to collection '{collection_name}'"
@@ -173,18 +185,40 @@ async def delete_blob(
             )
 
         async with httpx.AsyncClient() as client:
-            await client.delete(
-                f"{DATABASE_SERVICE_URL}/documents-stored",
-                params={
-                    "filename": filename,
-                    "profile_id": collection_name,
-                },
-            )
+            try:
+                await client.delete(
+                    f"{DATABASE_SERVICE_URL}/documents-stored/{collection_name}/{filename}",
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to delete document stored entry for "
+                    f"'{filename}' in profile '{collection_name}': {e}"
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Failed to delete document stored entry for "
+                        f"'{filename}' in profile '{collection_name}': {e}"
+                    )
+                )
 
-            await client.delete(
-                f"{EMBEDDING_SERVICE_URL}/collections/{collection_name}/"
-                f"documents/{filename}",
-            )
+            try:
+                await client.delete(
+                    f"{EMBEDDING_SERVICE_URL}/collections/{collection_name}/"
+                    f"documents/{filename}",
+                )
+            except Exception as e:
+                logger.error(
+                    f"Failed to delete document from embedding service "
+                    f"for '{filename}' in collection '{collection_name}': {e}"
+                )
+                raise HTTPException(
+                    status_code=500,
+                    detail=(
+                        f"Failed to delete document from embedding service "
+                        f"for '{filename}' in collection '{collection_name}': {e}"
+                    )
+                )
 
         logger.info(f"Deleted blob: {filename}")
         return {
