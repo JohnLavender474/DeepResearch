@@ -8,11 +8,12 @@ class TaskDecomposition(BaseModel):
 
 
 class TaskCitation(BaseModel):
-    content: str
     filename: str    
+    content_summary: str    
     chunk_index: int
     collection_name: str
     score: float
+    content: str
 
 
 class TaskResult(BaseModel):

@@ -25,6 +25,7 @@ from model.task import (
     TaskEntry,
     TaskCitation,
 )
+from model.document_summary import DocumentSummary
 from model.search_result import SearchResult
 from model.semantic_search_query import (
     SemanticSearchQuery,
@@ -250,7 +251,7 @@ def _format_document_context(
         context_parts.append("Retrieved documents:")
 
         for i, doc in enumerate(documents, 1):
-            content = doc.content_summary
+            content = doc.content_summary or doc.metadata.content
             context_parts.append(f"{i}. {content}")
 
     return "\n".join(context_parts)
@@ -269,17 +270,19 @@ def _extract_citations(
         chunk_index = doc.metadata.chunk_index
         content = doc.metadata.content
         score = doc.score
+        content_summary = doc.content_summary
 
         citation_key = (collection_name, filename, chunk_index)
 
         if citation_key not in seen:
             citations.append(
                 TaskCitation(
-                    content=content,
                     filename=filename,
+                    content_summary=content_summary,
                     chunk_index=chunk_index,
                     collection_name=collection_name,
                     score=score,
+                    content=content,
                 )
             )
             seen.add(citation_key)
@@ -364,7 +367,7 @@ def _filter_documents_by_score(
 async def _summarize_chunk(
     task: str,
     content: str,
-) -> str:
+) -> DocumentSummary:
     summarization_prompt = load_prompt("chunk_summarization.md")   
 
     task_input = json.dumps({
@@ -372,34 +375,40 @@ async def _summarize_chunk(
         "content": content,
     })
 
-    summary = await claude_client.ainvoke(
+    summary_response = await claude_client.ainvoke(
         input=[
             SystemMessage(content=summarization_prompt),
             HumanMessage(content=task_input),
         ],
+        output_type=DocumentSummary,
     )
 
-    return summary.content
+    return summary_response
 
 
-async def _summarize_documents(
+async def _summarization_and_relevancy_filtering(
     task: str,
     documents: list[SearchResult],
 ) -> list[SearchResult]:
     logger.debug(f"Summarizing {len(documents)} documents for task: {task}")
 
-    async def summarize_single(doc: SearchResult) -> SearchResult:
+    async def summarize_single(doc: SearchResult) -> tuple[SearchResult, bool]:
         original_content = doc.metadata.content
-        summary = await _summarize_chunk(task, original_content)
-        doc.content_summary = summary
-        return doc
+        summary_response = await _summarize_chunk(task, original_content)
+        doc.content_summary = summary_response.summary
+        return doc, summary_response.relevant
 
-    summarized_docs = await asyncio.gather(
+    results = await asyncio.gather(
         *[summarize_single(doc) for doc in documents]
     )
 
-    logger.debug(f"Completed summarization of {len(summarized_docs)} documents")
-    return list(summarized_docs)
+    relevant_docs = [doc for doc, is_relevant in results if is_relevant]
+
+    logger.debug(
+        f"Completed summarization. "
+        f"Relevant docs: {len(relevant_docs)}"
+    )
+    return relevant_docs
 
 
 async def _execute_task(
@@ -411,7 +420,7 @@ async def _execute_task(
     logger.debug(f"Executing task: {task}")
     try:
         search_query = await _generate_search_query(task)
-
+       
         documents = await _search_documents(
             collection_name,
             search_query,
@@ -421,20 +430,25 @@ async def _execute_task(
             documents=documents,
             max_docs=25
         )
-
-        citations = _extract_citations(
-            collection_name,
-            filtered_documents,
-        )
-
-        summarized_documents = await _summarize_documents(
+        
+        relevant_documents = await _summarization_and_relevancy_filtering(
             task,
             filtered_documents,
         )
 
+        logger.debug(
+            f"Using {len(relevant_documents)} relevant documents out of "
+            f"{len(filtered_documents)} filtered documents"
+        )
+
+        citations = _extract_citations(
+            collection_name,
+            relevant_documents,
+        )
+
         document_context = _format_document_context(
             search_query,
-            summarized_documents,
+            relevant_documents,
             chat_history,
         )
 

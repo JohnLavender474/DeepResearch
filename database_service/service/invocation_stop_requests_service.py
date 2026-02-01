@@ -37,7 +37,6 @@ def get_stop_request_by_invocation_id(
 
     return db.query(InvocationStopRequestModel).filter(
         InvocationStopRequestModel.invocation_id == invocation_id,
-        InvocationStopRequestModel.expires_at > now,
     ).first()
 
 
