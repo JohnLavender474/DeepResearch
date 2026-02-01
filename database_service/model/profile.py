@@ -2,12 +2,12 @@ from pydantic import BaseModel
 
 
 class ProfileCreate(BaseModel):
-    name: str
+    id: str
 
 
 class ProfileResponse(BaseModel):
     id: str
-    name: str
+    created_at: str
 
     class Config:
         from_attributes = True

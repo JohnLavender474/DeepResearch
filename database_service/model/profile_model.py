@@ -1,5 +1,4 @@
-from sqlalchemy import Column, String, Float
-from datetime import datetime
+from sqlalchemy import Column, DateTime, String
 
 from model.base import Base
 
@@ -7,9 +6,8 @@ from model.base import Base
 class ProfileModel(Base):
     __tablename__ = "profiles"
 
-    id = Column(String, primary_key=True)
-    name = Column(String, nullable=False)
+    id = Column(String, primary_key=True)    
     created_at = Column(
-        Float,        
+        DateTime,        
         nullable=False,
     )

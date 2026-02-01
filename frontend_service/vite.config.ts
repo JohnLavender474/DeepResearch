@@ -34,7 +34,11 @@ export default defineConfig({
       '/storage': {
         target: 'http://localhost:8002',
         changeOrigin: true
-      },     
+      }, 
+      '/api/database': {
+        target: 'http://localhost:8003',
+        changeOrigin: true
+      }    
     }
   }
 })

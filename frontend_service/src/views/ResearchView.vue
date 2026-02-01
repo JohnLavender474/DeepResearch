@@ -1,11 +1,8 @@
 <template>
   <div class="research-container">
     <aside class="sidebar">
-      <ChatHistory
-        :profile-id="selectedProfileId"
-        @conversation-selected="onConversationSelected"
-        @new-conversation="onNewConversation"
-      />
+      <ChatHistory :profile-id="selectedProfileId" @conversation-selected="onConversationSelected"
+        @new-conversation="onNewConversation" />
     </aside>
 
     <main class="main-content">
@@ -15,11 +12,7 @@
       </header>
 
       <div class="research-form">
-        <textarea
-          v-model="query"
-          placeholder="Enter your research query..."
-          rows="4"
-        ></textarea>
+        <textarea v-model="query" placeholder="Enter your research query..." rows="4"></textarea>
         <button @click="submitResearch" :disabled="loading">
           {{ loading ? 'Processing...' : 'Submit Research' }}
         </button>
@@ -37,11 +30,7 @@
     </main>
 
     <aside class="sidebar-right">
-      <FileUpload
-        :profile-id="selectedProfileId"
-        @file-uploaded="onFileUploaded"
-        @file-deleted="onFileDeleted"
-      />
+      <FileUpload :profile-id="selectedProfileId" @file-uploaded="onFileUploaded" @file-deleted="onFileDeleted" />
     </aside>
   </div>
 </template>
