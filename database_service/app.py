@@ -51,8 +51,9 @@ async def cleanup_expired_stop_requests():
 
             logger.debug("Running expired stop request cleanup task...")
 
-            db = SessionLocal()
-            try:
+            """
+            db = SessionLocal()            
+            try:               
                 deleted_count = invocation_stop_requests_service.delete_expired_stop_requests(
                     db=db,
                 )
@@ -60,8 +61,9 @@ async def cleanup_expired_stop_requests():
                     logger.info(
                         f"Cleaned up {deleted_count} expired stop requests"
                     )
-            finally:
-                db.close()            
+            finally:                
+                db.close()
+            """            
         except asyncio.CancelledError:
             logger.info("Stop request cleanup task cancelled")
             break

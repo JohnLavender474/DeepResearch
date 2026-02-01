@@ -1,74 +1,53 @@
 <template>
   <div class="research-container">
-    <aside class="sidebar">   
-      <div v-if="loading && !selectedProfileId" class="loader">
-        <div class="spinner"></div>
-      </div>
-      <div v-else class="component-wrapper">
-        <ChatHistory
-          :profile-id="selectedProfileId"
-          :loading="loading && !selectedProfileId"
-          @conversation-selected="onConversationSelected"
-          @new-conversation="onNewConversation"
-        />
-      </div>
-    </aside>
+    <header class="research-header">
+      <h1>Deep Research</h1>
+    </header>
 
-    <main class="main-content">
-      <header class="header">
-        <h1>Deep Research</h1>
-        <ProfileSelector
-          :profiles="profiles"
-          :loading="profilesLoading"
-          :disabled="profilesLoading"
-          :model-value="selectedProfileId"
-          @profile-changed="onProfileChanged"
-        />
-      </header>
+    <div class="content-area">
+      <aside class="sidebar">
+        <div v-if="loading && !selectedProfileId" class="loader">
+          <div class="spinner"></div>
+        </div>
+        <div v-else class="component-wrapper">
+          <ProfileSelector :profiles="profiles" :loading="profilesLoading" :disabled="profilesLoading"
+            :model-value="selectedProfileId" @profile-changed="onProfileChanged" />
+          <ChatHistory :profile-id="selectedProfileId" :loading="loading && !selectedProfileId"
+            @conversation-selected="onConversationSelected" @new-conversation="onNewConversation" />
+        </div>
+      </aside>
 
-      <div class="research-form">
-        <textarea v-model="query" placeholder="Enter your research query..." rows="4"></textarea>
-        <button @click="submitResearch" :disabled="loading">
-          {{ loading ? 'Processing...' : 'Submit Research' }}
-        </button>
-      </div>
+      <main class="main-section">
+        <ChatSection ref="chatSection" :conversation-id="selectedConversationId" :profile-id="selectedProfileId"
+          @message-submitted="onMessageSubmitted" />
+      </main>
 
-      <div v-if="result" class="result">
-        <h2>Result</h2>
-        <pre>{{ result }}</pre>
-      </div>
-
-      <div v-if="error" class="error">
-        <h2>Error</h2>
-        <p>{{ error }}</p>
-      </div>
-    </main>
-
-    <aside class="sidebar-right">
-      <div class="component-wrapper">
-        <FileManagement :profile-id="selectedProfileId" @file-uploaded="onFileUploaded" @file-deleted="onFileDeleted" />
-      </div>
-    </aside>
+      <aside class="sidebar-right">
+        <div class="component-wrapper">
+          <FileManagement :profile-id="selectedProfileId" @file-uploaded="onFileUploaded"
+            @file-deleted="onFileDeleted" />
+        </div>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-import ProfileSelector from '@/components/ProfileSelector.vue'
 import ChatHistory from '@/components/ChatHistory.vue'
+import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles, type Profile } from '@/services/profileService'
+import ProfileSelector from '@/components/ProfileSelector.vue'
 
 
-const query = ref('')
-const result = ref('')
-const error = ref('')
 const loading = ref(false)
 const profiles = ref<Profile[]>([])
 const profilesLoading = ref(false)
 const selectedProfileId = ref('')
 const selectedConversationId = ref('')
+const chatSection = ref()
 
 const loadProfiles = async () => {
   profilesLoading.value = true
@@ -84,7 +63,9 @@ const loadProfiles = async () => {
 const onProfileChanged = (profileId: string) => {
   selectedProfileId.value = profileId
   selectedConversationId.value = ''
-  result.value = ''
+  if (chatSection.value) {
+    chatSection.value.clearMessages()
+  }
 }
 
 const onConversationSelected = (conversationId: string) => {
@@ -93,8 +74,9 @@ const onConversationSelected = (conversationId: string) => {
 
 const onNewConversation = () => {
   selectedConversationId.value = ''
-  query.value = ''
-  result.value = ''
+  if (chatSection.value) {
+    chatSection.value.clearMessages()
+  }
 }
 
 const onFileUploaded = (filename: string) => {
@@ -105,19 +87,40 @@ const onFileDeleted = (filename: string) => {
   console.log(`File deleted: ${filename}`)
 }
 
-const submitResearch = async () => {
-  if (!query.value.trim()) {
-    error.value = 'Please enter a query'
-    return
+const onMessageSubmitted = async (query: string) => {
+  if (chatSection.value) {
+    chatSection.value.setProcessing(true)
   }
 
-  loading.value = true
-  error.value = ''
-  result.value = ''
+  try {
+    await new Promise((resolve) => setTimeout(resolve, 1000))
 
-  await new Promise((resolve) => setTimeout(resolve, 1000))
-  result.value = `Simulated response for query: "${query.value}"`
-  loading.value = false
+    const mockAIResponse = {
+      current_result: `Research findings for: "${query}"`,
+      process_selection: {
+        process_type: 'parallel_tasks',
+      },
+      steps: [
+        { type: 'process_selection', details: {} },
+        { type: 'parallel_tasks', details: {} },
+      ],
+      task_entries: [
+        { id: '1', title: 'Task 1' },
+        { id: '2', title: 'Task 2' },
+      ],
+      review: 'This is a sample review of the research findings.',
+    }
+
+    if (chatSection.value) {
+      chatSection.value.addAIMessage(mockAIResponse)
+      chatSection.value.setProcessing(false)
+    }
+  } catch (err) {
+    if (chatSection.value) {
+      chatSection.value.setError('Failed to process request')
+      chatSection.value.setProcessing(false)
+    }
+  }
 }
 
 onMounted(async () => {
@@ -128,43 +131,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
-.research-container {
-  display: grid;
-  grid-template-columns: 280px 1fr 300px;
-  gap: 1.5rem;
-  height: calc(100vh - 2rem);
-  padding: 1rem;
-}
-
-.sidebar {
-  height: 100%;
-  overflow: hidden;
-}
-
-.sidebar-right {
-  height: 100%;
-  overflow: hidden;
-}
-
-.component-wrapper {
-  height: 80%;
-}
-
-.main-content {
+.research-header {
   display: flex;
-  flex-direction: column;
-  max-width: 800px;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.header {
-  display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  margin-bottom: 1.5rem;
-  flex-wrap: wrap;
-  gap: 1rem;
+  width: 100%;
+  flex-shrink: 0;
+  padding: 1rem 0;
 }
 
 h1 {
@@ -172,97 +145,51 @@ h1 {
   margin: 0;
 }
 
-.research-form {
+.research-container {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-textarea {
+  height: calc(100vh - 2rem);
   padding: 1rem;
-  font-size: 1rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-family: inherit;
 }
 
-button {
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  background-color: #42b983;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s;
+.content-area {
+  display: grid;
+  grid-template-columns: 280px 1fr 300px;
+  gap: 1.5rem;
+  flex: 1;
+  min-height: 0;
 }
 
-button:hover:not(:disabled) {
-  background-color: #38a071;
+.sidebar {
+  height: 90%;
+  overflow: hidden;
 }
 
-button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
+.sidebar-right {
+  height: 90%;
+  overflow: hidden;
 }
 
-.result,
-.error {
-  margin-top: 2rem;
-  padding: 1rem;
-  border-radius: 4px;
+.component-wrapper {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.result {
-  background-color: #f0f9ff;
-  border: 1px solid #0ea5e9;
-}
-
-.error {
-  background-color: #fef2f2;
-  border: 1px solid #ef4444;
-}
-
-pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  font-size: 0.9rem;
+.main-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 @media (max-width: 1200px) {
-  .research-container {
+  .content-area {
     grid-template-columns: 1fr;
     grid-template-rows: auto 1fr auto;
   }
 
   .sidebar {
     height: 200px;
-  }
-}
-
-.loader {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-}
-
-.spinner {
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #42b983;
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
   }
 }
 </style>

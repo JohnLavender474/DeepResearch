@@ -2,7 +2,7 @@
     <div v-if="isOpen" class="modal-overlay" @click="closeModal">
         <div class="modal-content" @click.stop>
             <div class="modal-header">
-                <h3>{{ document.filename }}</h3>
+                <h3>{{ document!.filename }}</h3>
                 <button class="close-button" @click="closeModal" aria-label="Close modal">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                         fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -81,7 +81,7 @@ const props = defineProps<DocumentModalProps>()
 
 interface DocumentModalEmits {
     (e: 'close'): void
-    (e: 'document-deleted', filename: string): void
+    (e: 'document-deleted'): void
 }
 
 const emit = defineEmits<DocumentModalEmits>()
@@ -143,7 +143,7 @@ const handleDelete = async () => {
 
     try {
         await deleteFile(props.profileId, props.document.filename)
-        emit('document-deleted', props.document.filename)
+        emit('document-deleted')
         closeModal()
     } catch (error) {
         errorMessage.value =

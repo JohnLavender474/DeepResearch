@@ -5,6 +5,11 @@ from sqlalchemy.orm import Session
 
 from model.invocation_stop_request_model import InvocationStopRequestModel
 
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 STOP_REQUEST_TTL_SECONDS = 3600
 
@@ -60,12 +65,19 @@ def delete_stop_request_by_invocation_id(
 def delete_expired_stop_requests(
     db: Session,
 ) -> int:
-    now = datetime.now(timezone.utc)
+    try:
+        now = datetime.now(timezone.utc)
 
-    result = db.query(InvocationStopRequestModel).filter(
-        InvocationStopRequestModel.expires_at <= now,
-    ).delete()
+        result = db.query(InvocationStopRequestModel).filter(
+            InvocationStopRequestModel.expires_at <= now,
+        ).delete()
 
-    db.commit()
+        db.commit()
 
-    return result
+        return result
+    except Exception as e:
+        logger.error(
+            f"Error deleting expired stop requests: {str(e)}"
+        )
+        db.rollback()
+        return 0

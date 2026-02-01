@@ -21,9 +21,12 @@
             </p>
         </div>
 
-        <div v-if="uploadedFiles.length > 0" class="uploaded-files">
+        <div class="uploaded-files">
             <h4>Uploaded Documents</h4>
-            <ul>
+            <div v-if="loadingDocuments" class="loading-container">
+                <div class="spinner"></div>
+            </div>
+            <ul v-else>
                 <li
                     v-for="file in uploadedFiles"
                     :key="file.filename"
@@ -31,6 +34,9 @@
                     class="document-row"
                 >
                     <span class="file-name">{{ file.filename }}</span>
+                </li>
+                <li v-if="uploadedFiles.length === 0" class="no-documents">
+                    No documents uploaded yet
                 </li>
             </ul>
         </div>
@@ -53,6 +59,7 @@
 import { ref, watch } from 'vue'
 import { uploadFile, fetchFilesForProfile } from '@/services/fileService'
 import DocumentModal from './modals/DocumentModal.vue'
+import '@/styles/shared.css'
 import type FileInfo from '@/model/fileInfo'
 
 
@@ -72,6 +79,7 @@ const isDragOver = ref(false)
 
 const uploadedFiles = ref<FileInfo[]>([])
 const uploading = ref(false)
+const loadingDocuments = ref(false)
 
 const errorMessage = ref('')
 
@@ -81,14 +89,18 @@ const selectedDocument = ref<FileInfo | null>(null)
 const loadUploadedFiles = async (profileId: string) => {
     if (!profileId) {
         uploadedFiles.value = []
+        loadingDocuments.value = false
         return
     }
 
+    loadingDocuments.value = true
     try {
         uploadedFiles.value = await fetchFilesForProfile(profileId)
     } catch (error) {
         console.error('Failed to load documents:', error)
         uploadedFiles.value = []
+    } finally {
+        loadingDocuments.value = false
     }
 }
 
@@ -168,7 +180,7 @@ const closeDocumentModal = () => {
     selectedDocument.value = null
 }
 
-const handleDocumentDeleted = async (filename: string) => {
+const handleDocumentDeleted = async () => {
     await loadUploadedFiles(props.profileId)
 }
 
@@ -248,18 +260,24 @@ watch(
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    display: flex;
+    flex-direction: column;
 }
 
 .uploaded-files h4 {
     margin: 0 0 0.75rem 0;
     font-size: 0.9rem;
     color: #475569;
+    flex-shrink: 0;
 }
 
 .uploaded-files ul {
     list-style: none;
     padding: 0;
     margin: 0;
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .document-row {
@@ -281,6 +299,21 @@ watch(
 
 .document-row:last-child {
     margin-bottom: 0;
+}
+
+.no-documents {
+    padding: 1rem;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.9rem;
+    background-color: transparent;
+    border: none;
+    cursor: default;
+}
+
+.no-documents:hover {
+    background-color: transparent;
+    border-color: #e2e8f0;
 }
 
 .file-name {

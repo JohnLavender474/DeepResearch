@@ -6,6 +6,7 @@
 
         <div class="chat-list">
             <div v-if="conversations.length === 0 && loading" class="loading-indicator">
+                <div class="spinner"></div>
                 Loading conversations...
             </div>
             <div v-else-if="conversations.length === 0" class="no-conversations">
@@ -29,7 +30,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import type Conversation from '@/model/conversation';
+import type Conversation from '@/model/conversation'
+import '@/styles/shared.css'
 
 
 interface ChatHistoryProps {
