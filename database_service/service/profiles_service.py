@@ -12,21 +12,20 @@ from model.profile_model import ProfileModel
 def create_profile(
     db: Session,
     profile: ProfileCreate,
-) -> ProfileModel:  
+) -> ProfileResponse:
     created_at = datetime.now(timezone.utc)
-    
+
     db_profile = ProfileModel(
         id=profile.id,
         created_at=created_at,
     )
     db.add(db_profile)
-
     db.commit()
     db.refresh(db_profile)
 
     return ProfileResponse(
         id=db_profile.id,
-        created_at=db_profile.created_at.isoformat(),
+        created_at=str(db_profile.created_at),
     )
 
 
@@ -43,5 +42,13 @@ def exists_profile_by_id(
 
 def get_all_profiles(
     db: Session,
-) -> list[ProfileModel]:
-    return db.query(ProfileModel).all()
+) -> list[ProfileResponse]:
+    profiles = db.query(ProfileModel).all()
+
+    return [
+        ProfileResponse(
+            id=profile.id,
+            created_at=str(profile.created_at),
+        )
+        for profile in profiles
+    ]

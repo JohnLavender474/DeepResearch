@@ -1,14 +1,28 @@
 <template>
   <div class="research-container">
-    <aside class="sidebar">
-      <ChatHistory :profile-id="selectedProfileId" @conversation-selected="onConversationSelected"
-        @new-conversation="onNewConversation" />
+    <aside class="sidebar">   
+      <div v-if="loading && !selectedProfileId" class="loader">
+        <div class="spinner"></div>
+      </div>
+      <ChatHistory
+        v-else
+        :profile-id="selectedProfileId"
+        :loading="loading && !selectedProfileId"
+        @conversation-selected="onConversationSelected"
+        @new-conversation="onNewConversation"
+      />
     </aside>
 
     <main class="main-content">
       <header class="header">
         <h1>Deep Research</h1>
-        <ProfileSelector @profile-changed="onProfileChanged" />
+        <ProfileSelector
+          :profiles="profiles"
+          :loading="profilesLoading"
+          :disabled="profilesLoading"
+          :model-value="selectedProfileId"
+          @profile-changed="onProfileChanged"
+        />
       </header>
 
       <div class="research-form">
@@ -36,19 +50,33 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 
 import ProfileSelector from '@/components/ProfileSelector.vue'
 import ChatHistory from '@/components/ChatHistory.vue'
 import FileUpload from '@/components/FileUpload.vue'
+import { fetchProfiles, type Profile } from '@/services/profileService'
 
 
 const query = ref('')
 const result = ref('')
 const error = ref('')
 const loading = ref(false)
+const profiles = ref<Profile[]>([])
+const profilesLoading = ref(false)
 const selectedProfileId = ref('')
 const selectedConversationId = ref('')
+
+const loadProfiles = async () => {
+  profilesLoading.value = true
+  profiles.value = await fetchProfiles()
+
+  if (profiles.value.length > 0) {
+    selectedProfileId.value = profiles.value[0].id
+  }
+
+  profilesLoading.value = false
+}
 
 const onProfileChanged = (profileId: string) => {
   selectedProfileId.value = profileId
@@ -88,6 +116,12 @@ const submitResearch = async () => {
   result.value = `Simulated response for query: "${query.value}"`
   loading.value = false
 }
+
+onMounted(async () => {
+  loading.value = true
+  await loadProfiles()
+  loading.value = false
+})
 </script>
 
 <style scoped>
@@ -196,6 +230,31 @@ pre {
 
   .sidebar {
     height: 200px;
+  }
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #42b983;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
   }
 }
 </style>

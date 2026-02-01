@@ -4,7 +4,7 @@
 
 - **No inline comments**: Do not include inline comments explaining code logic within functions, classes, or methods.
 - **No function/class documentation**: Do not add docstrings, JavaDoc, or similar documentation blocks to functions or classes unless explicitly requested.
-- **Consistent formatting**: Ensure the generated code adheres to standard formatting conventions for the target programming language (e.g., indentation, spacing). There should be two lines instead of one to separate different blocks (between the "import" section and the start of the class, between methods, etc.).
+- **Consistent formatting**: Ensure the generated code adheres to standard formatting conventions for the target programming language (e.g., indentation, spacing). There should be two lines instead of one to separate different blocks (between the "import" section and the start of the class, between methods, etc.). Try to make any new code match the formatting and overall style of the existing code in the file if any. The existing code style should take priority over trying to fit the standard formatting for the given language.
 - **Prefer Strong Typing**: Use strong typing conventions available in the programming language (e.g., type hints in Python, TypeScript types).
 - **Wrap long lines**: Ensure that lines do not exceed 80 characters in length for better readability.
 - **Define each field on its own line**: When defining or instantiating data structures (like classes or interfaces), place each field on a separate line.

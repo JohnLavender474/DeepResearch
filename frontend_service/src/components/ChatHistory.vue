@@ -29,19 +29,14 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import type Conversation from '@/model/conversation';
 
 
-interface Conversation {
-    id: string
-    title: string | null
-    created_at: string
-    updated_at: string
-    chat_turns: string[]
+interface ChatHistoryProps {
+    profileId: string
 }
 
-const props = defineProps<{
-    profileId: string
-}>()
+const props = defineProps<ChatHistoryProps>()
 
 const emit = defineEmits<{
     (e: 'conversation-selected', conversationId: string): void
@@ -94,7 +89,9 @@ const formatDate = (dateString: string): string => {
 watch(
     () => props.profileId,
     (newProfileId) => {
-        loadConversations(newProfileId)
+        if (newProfileId) {
+            loadConversations(newProfileId)
+        }
     },
     { immediate: true }
 )

@@ -25,7 +25,10 @@ def create_profile(
     profile: ProfileCreate,
     db: Session = Depends(get_db),
 ) -> ProfileResponse:
-    if profiles_service.exists_profile_by_id(db, profile.id):
+    if profiles_service.exists_profile_by_id(
+        db=db,
+        profile_id=profile.id,
+    ):
         raise HTTPException(
             status_code=400,
             detail=f"Profile with ID {profile.id} already exists."
@@ -38,10 +41,7 @@ def create_profile(
         profile=profile,
     )
 
-    return ProfileResponse(
-        id=created.id,
-        created_at=str(created.created_at),
-    )
+    return created
 
 
 @router.get("/profiles")

@@ -1,9 +1,18 @@
 <template>
     <div class="profile-selector">
         <label for="profile-select">Profile:</label>
-        <select id="profile-select" v-model="selectedProfileId" @change="onProfileChange" :disabled="loading">
-            <option v-for="profile in profiles" :key="profile.id" :value="profile.id">
-                {{ profile.name }}
+        <select
+          id="profile-select"
+          v-model="selectedProfileId"
+          @change="onProfileChange"
+          :disabled="disabled"
+        >
+            <option
+              v-for="profile in profiles"
+              :key="profile.id"
+              :value="profile.id"
+            >
+                {{ profile.id }}
             </option>
         </select>
         <span v-if="loading" class="loading-indicator">Loading...</span>
@@ -11,47 +20,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, watch } from 'vue'
+import type { Profile } from '@/services/profileService'
 
 
-interface Profile {
-    id: string
-    name: string
+interface ProfileSelectorProps {
+  profiles: Profile[]
+  disabled: boolean
+  loading: boolean
+  modelValue: string
 }
+
+const props = defineProps<ProfileSelectorProps>()
 
 const emit = defineEmits<{
-    (e: 'profile-changed', profileId: string): void
+  (e: 'profile-changed', profileId: string): void
+  (e: 'update:modelValue', profileId: string): void
 }>()
 
-const profiles = ref<Profile[]>([])
 const selectedProfileId = ref<string>('')
-const loading = ref(false)
-
-const fetchProfiles = async () => {
-    loading.value = true
-
-    await new Promise((resolve) => setTimeout(resolve, 500))
-    profiles.value = [
-        { id: 'profile-1', name: 'Default Profile' },
-        { id: 'profile-2', name: 'Work Profile' },
-        { id: 'profile-3', name: 'Personal Profile' },
-    ]
-
-    if (profiles.value.length > 0) {
-        selectedProfileId.value = profiles.value[0].id
-        emit('profile-changed', selectedProfileId.value)
-    }
-
-    loading.value = false
-}
 
 const onProfileChange = () => {
-    emit('profile-changed', selectedProfileId.value)
+  emit('profile-changed', selectedProfileId.value)
+  emit('update:modelValue', selectedProfileId.value)
 }
 
-onMounted(() => {
-    fetchProfiles()
-})
+watch(
+  () => props.modelValue,
+  (newValue) => {
+    selectedProfileId.value = newValue
+  },
+  { immediate: true }
+)
 </script>
 
 <style scoped>
