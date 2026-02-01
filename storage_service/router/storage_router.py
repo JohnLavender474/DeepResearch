@@ -220,42 +220,6 @@ async def delete_blob(
                     )
                 )
 
-            try:
-                await client.delete(
-                    f"{EMBEDDING_SERVICE_URL}/collections/{collection_name}/"
-                    f"documents/{filename}",
-                )
-            except httpx.HTTPStatusError as http_exc:
-                if http_exc.response.status_code == 404:
-                    logger.warning(
-                        f"Document '{filename}' not found in embedding service "
-                        f"for collection '{collection_name}'"
-                    )
-                else:
-                    logger.error(
-                        f"Failed to delete document from embedding service "
-                        f"for '{filename}' in collection '{collection_name}': {http_exc}"
-                    )
-                    raise HTTPException(
-                        status_code=500,
-                        detail=(
-                            f"Failed to delete document from embedding service "
-                            f"for '{filename}' in collection '{collection_name}': {http_exc}"
-                        )
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Failed to delete document from embedding service "
-                    f"for '{filename}' in collection '{collection_name}': {e}"
-                )
-                raise HTTPException(
-                    status_code=500,
-                    detail=(
-                        f"Failed to delete document from embedding service "
-                        f"for '{filename}' in collection '{collection_name}': {e}"
-                    )
-                )
-
         logger.info(f"Deleted blob: {filename}")
         return {
             "status": "ok",

@@ -23,7 +23,7 @@ from config.vars import DATABASE_SERVICE_URL
 
 
 logger = logging.getLogger(__name__)
-router = APIRouter(prefix="/api/embedding", tags=["embedding"])
+router = APIRouter(prefix="/api/embeddings", tags=["embedding"])
 
 
 @router.get("/collections")

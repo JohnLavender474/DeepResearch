@@ -200,7 +200,7 @@ async def _search_documents(
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 (
-                    f"http://localhost:8000/api/embedding/"
+                    f"http://localhost:8000/api/embeddings/"
                     f"collections/{collection_name}/search"
                 ),
                 json={

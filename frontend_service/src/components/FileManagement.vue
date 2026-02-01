@@ -24,9 +24,13 @@
         <div v-if="uploadedFiles.length > 0" class="uploaded-files">
             <h4>Uploaded Documents</h4>
             <ul>
-                <li v-for="file in uploadedFiles" :key="file.name">
-                    <span class="file-name">{{ file.name }}</span>
-                    <button class="delete-btn" @click="deleteFile(file.name)">×</button>
+                <li
+                    v-for="file in uploadedFiles"
+                    :key="file.filename"
+                    @click="openDocumentModal(file)"
+                    class="document-row"
+                >
+                    <span class="file-name">{{ file.filename }}</span>
                 </li>
             </ul>
         </div>
@@ -34,13 +38,22 @@
         <div v-if="errorMessage" class="error-message">
             {{ errorMessage }}
         </div>
+
+        <DocumentModal
+            :is-open="isModalOpen"
+            :document="selectedDocument"
+            :profile-id="profileId"
+            @close="closeDocumentModal"
+            @document-deleted="handleDocumentDeleted"
+        />
     </div>
 </template>
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { uploadFile } from '@/services/fileService'
-import type UploadedFile from '@/model/uploadedFile'
+import { uploadFile, fetchFilesForProfile } from '@/services/fileService'
+import DocumentModal from './modals/DocumentModal.vue'
+import type FileInfo from '@/model/fileInfo'
 
 
 interface FileManagementProps {
@@ -51,24 +64,32 @@ const props = defineProps<FileManagementProps>()
 
 const emit = defineEmits<{
     (e: 'file-uploaded', filename: string): void
-    (e: 'file-deleted', filename: string): void
 }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
 
 const isDragOver = ref(false)
 
-const uploadedFiles = ref<UploadedFile[]>([])
+const uploadedFiles = ref<FileInfo[]>([])
 const uploading = ref(false)
 
 const errorMessage = ref('')
 
+const isModalOpen = ref(false)
+const selectedDocument = ref<FileInfo | null>(null)
+
 const loadUploadedFiles = async (profileId: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 200))
-    uploadedFiles.value = [
-        { name: 'research-paper.pdf', uploadedAt: new Date('2026-01-30') },
-        { name: 'quarterly-report.pdf', uploadedAt: new Date('2026-01-29') },
-    ]
+    if (!profileId) {
+        uploadedFiles.value = []
+        return
+    }
+
+    try {
+        uploadedFiles.value = await fetchFilesForProfile(profileId)
+    } catch (error) {
+        console.error('Failed to load documents:', error)
+        uploadedFiles.value = []
+    }
 }
 
 const openFileDialog = () => {
@@ -109,7 +130,9 @@ const handleFile = async (file: File) => {
         return
     }
 
-    const existingFile = uploadedFiles.value.find((f) => f.name === file.name)
+    const existingFile = uploadedFiles.value.find(
+        (f) => f.filename === file.name
+    )
     if (existingFile) {
         errorMessage.value = 'A file with this name already exists'
         return
@@ -119,10 +142,7 @@ const handleFile = async (file: File) => {
 
     try {
         await uploadFile(props.profileId, file)
-        uploadedFiles.value.push({
-            name: file.name,
-            uploadedAt: new Date(),
-        })
+        await loadUploadedFiles(props.profileId)
         emit('file-uploaded', file.name)
     } catch (error) {
         errorMessage.value =
@@ -138,10 +158,18 @@ const handleFile = async (file: File) => {
     }
 }
 
-const deleteFile = async (filename: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 300))
-    uploadedFiles.value = uploadedFiles.value.filter((f) => f.name !== filename)
-    emit('file-deleted', filename)
+const openDocumentModal = (document: FileInfo) => {
+    selectedDocument.value = document
+    isModalOpen.value = true
+}
+
+const closeDocumentModal = () => {
+    isModalOpen.value = false
+    selectedDocument.value = null
+}
+
+const handleDocumentDeleted = async (filename: string) => {
+    await loadUploadedFiles(props.profileId)
 }
 
 watch(
@@ -229,18 +257,24 @@ watch(
     margin: 0;
 }
 
-.uploaded-files li {
+.document-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: 0.5rem 0.75rem;
+    padding: 0.75rem;
     background-color: white;
     border: 1px solid #e2e8f0;
     border-radius: 4px;
     margin-bottom: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
 }
 
-.uploaded-files li:last-child {
+.document-row:hover {
+    background-color: #f1f5f9;
+    border-color: #cbd5e1;
+}
+
+.document-row:last-child {
     margin-bottom: 0;
 }
 
@@ -250,20 +284,6 @@ watch(
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.delete-btn {
-    background: none;
-    border: none;
-    color: #ef4444;
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 0 0.25rem;
-    line-height: 1;
-}
-
-.delete-btn:hover {
-    color: #dc2626;
 }
 
 .error-message {

@@ -22,5 +22,5 @@ DATABASE_SERVICE_URL = _get_optional_env_var(
 
 EMBEDDING_SERVICE_URL = _get_optional_env_var(
     var_name="EMBEDDING_SERVICE_URL",
-    default_value="http://localhost:8000/api/embedding"
+    default_value="http://localhost:8000/api/embeddings"
 )
