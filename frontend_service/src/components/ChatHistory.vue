@@ -30,7 +30,9 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+
 import type Conversation from '@/model/conversation'
+import { fetchConversationsForProfile } from '@/services/conversationService'
 import '@/styles/shared.css'
 
 
@@ -54,12 +56,7 @@ const loadConversations = async (profileId: string) => {
     loading.value = true
 
     try {
-        const response = await fetch(
-            `/api/database/${profileId}/conversations`
-        )
-        const data = await response.json()
-        console.log('Fetched conversations:', data)
-        conversations.value = data
+        conversations.value = await fetchConversationsForProfile(profileId)
     } catch (error) {
         console.error('Failed to fetch conversations:', error)
         conversations.value = []
@@ -75,9 +72,18 @@ const selectConversation = (conversationId: string) => {
     emit('conversation-selected', conversationId)
 }
 
+const deselectConversation = () => {
+    selectedConversationId.value = ''
+}
+
 const startNewConversation = () => {
     selectedConversationId.value = ''
     emit('new-conversation')
+}
+
+const addConversation = (conversation: Conversation) => {
+    conversations.value.unshift(conversation)
+    selectedConversationId.value = conversation.id
 }
 
 const formatDate = (dateString: string): string => {
@@ -97,6 +103,12 @@ watch(
     },
     { immediate: true }
 )
+
+defineExpose({
+    deselectConversation,
+    addConversation,
+    selectConversation,
+})
 </script>
 
 <style scoped>

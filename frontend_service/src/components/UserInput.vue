@@ -2,6 +2,7 @@
   <div class="user-input">
     <form @submit.prevent="onSubmit" class="input-form">
       <textarea
+        ref="textareaRef"
         v-model="query"
         placeholder="Enter your research query..."
         rows="4"
@@ -10,23 +11,28 @@
         @keydown.ctrl.enter="onSubmit"
       ></textarea>
 
-      <button type="submit" :disabled="disabled">
-        {{ disabled ? 'Processing...' : 'Submit' }}
+      <button
+        type="submit"
+        :disabled="disabled || !isValidInput"
+      >
+        {{ submitButtonText }}
       </button>
     </form>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 
 interface UserInputProps {
   disabled?: boolean
+  loading?: boolean
 }
 
-withDefaults(defineProps<UserInputProps>(), {
+const props = withDefaults(defineProps<UserInputProps>(), {
   disabled: false,
+  loading: false,
 })
 
 const emit = defineEmits<{
@@ -34,13 +40,43 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
+const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+const isValidInput = computed(() => query.value.trim().length > 0)
+
+const submitButtonText = computed(() => {
+  if (props.loading) {
+    return 'Loading...'
+  }
+  if (props.disabled) {
+    return 'Processing...'
+  }
+  return 'Submit Query'
+})
 
 const onSubmit = () => {
-  if (query.value.trim()) {
+  if (
+    query.value.trim() &&
+    !props.disabled &&
+    !props.loading
+  ) {
     emit('submit', query.value)
     query.value = ''
   }
 }
+
+const focus = () => {
+  textareaRef.value?.focus()
+}
+
+const clear = () => {
+  query.value = ''
+}
+
+defineExpose({
+  focus,
+  clear,
+})
 </script>
 
 <style scoped>

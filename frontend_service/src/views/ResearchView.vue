@@ -22,6 +22,7 @@
             @profile-changed="onProfileChanged"
           />
           <ChatHistory
+            ref="chatHistoryRef"
             :profile-id="selectedProfileId"
             :loading="loading && !selectedProfileId"
             @conversation-selected="onConversationSelected"
@@ -32,10 +33,11 @@
 
       <main class="main-section">
         <ChatSection
-          ref="chatSection"
+          ref="chatSectionRef"
           :conversation-id="selectedConversationId"
           :profile-id="selectedProfileId"
           @message-submitted="onMessageSubmitted"
+          @conversation-created="onConversationCreated"
         />
       </main>
 
@@ -60,8 +62,10 @@ import ChatHistory from '@/components/ChatHistory.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles } from '@/services/profileService'
+import { fetchConversation } from '@/services/conversationService'
 import ProfileSelector from '@/components/ProfileSelector.vue'
 import type Profile from '@/model/profile'
+import type Conversation from '@/model/conversation'
 import { useLocalStorage } from '@/composables/useLocalStorage'
 
 
@@ -75,7 +79,8 @@ const profilesLoading = ref(false)
 const selectedProfileId = ref('')
 
 const selectedConversationId = ref('')
-const chatSection = ref()
+const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
+const chatHistoryRef = ref<InstanceType<typeof ChatHistory> | null>(null)
 
 const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = true
@@ -100,12 +105,7 @@ const loadProfiles = async (preferredProfileId: string | null) => {
       selectedProfileId.value = profiles.value[0].id
     }
 
-    const storedConversationId = storage.getConversationForProfile(
-      selectedProfileId.value
-    )
-    if (storedConversationId) {
-      selectedConversationId.value = storedConversationId
-    }
+    selectedConversationId.value = ''
   } else {
     selectedProfileId.value = ''
   }
@@ -117,27 +117,31 @@ const onProfileChanged = (profileId: string) => {
   selectedProfileId.value = profileId
   storage.setSelectedProfile(profileId)
 
-  const storedConversationId = storage.getConversationForProfile(profileId)
-  if (storedConversationId) {
-    selectedConversationId.value = storedConversationId
-  } else {
-    selectedConversationId.value = ''
-    if (chatSection.value) {
-      chatSection.value.clearMessages()
-    }
+  selectedConversationId.value = ''
+  if (chatSectionRef.value) {
+    chatSectionRef.value.clearMessages()
   }
 }
 
 const onProfileCreated = async (profile: Profile) => {
-  console.log(`Profile created: ${profile.id}`)
   await loadProfiles(profile.id)
   selectedConversationId.value = ''
-  if (chatSection.value) {
-    chatSection.value.clearMessages()
+  if (chatSectionRef.value) {
+    chatSectionRef.value.clearMessages()
   }
 }
 
 const onConversationSelected = (conversationId: string) => {
+  selectedConversationId.value = conversationId
+  if (selectedProfileId.value) {
+    storage.setConversationForProfile(
+      selectedProfileId.value,
+      conversationId
+    )
+  }
+}
+
+const onConversationCreated = async (conversationId: string) => {
   selectedConversationId.value = conversationId
   if (selectedProfileId.value) {
     storage.setConversationForProfile(
@@ -152,8 +156,9 @@ const onNewConversation = () => {
   if (selectedProfileId.value) {
     storage.clearConversationForProfile(selectedProfileId.value)
   }
-  if (chatSection.value) {
-    chatSection.value.clearMessages()
+  if (chatSectionRef.value) {
+    chatSectionRef.value.clearMessages()
+    chatSectionRef.value.focusInput()
   }
 }
 
@@ -167,11 +172,6 @@ const onFileDeleted = (filename: string) => {
 
 const onMessageSubmitted = async (query: string) => {
   console.log(`Message submitted: ${query}`)
-  try {
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-  } catch (err) {
-    console.error('Error handling message submission:', err)
-  }
 }
 
 onMounted(async () => {
