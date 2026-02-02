@@ -20,6 +20,7 @@
 import { ref, watch } from 'vue'
 import ChatMessages from './ChatMessages.vue'
 import UserInput from './UserInput.vue'
+import { streamGraphExecution } from '@/services/graphService'
 
 
 interface ChatMessage {
@@ -44,7 +45,7 @@ const messages = ref<ChatMessage[]>([])
 const isProcessing = ref(false)
 const error = ref('')
 
-const onSubmit = (query: string) => {
+const onSubmit = async (query: string) => {
   if (!query.trim()) {
     error.value = 'Please enter a message'
     return
@@ -62,6 +63,33 @@ const onSubmit = (query: string) => {
 
   messages.value.push(userMessage)
   emit('message-submitted', query)
+
+  const aiMessageId = `msg_${Date.now()}_ai`
+  const aiMessage: ChatMessage = {
+    id: aiMessageId,
+    role: 'ai',
+    content: '',
+    timestamp: new Date(),
+  }
+  messages.value.push(aiMessage)
+
+  try {
+    const stream = streamGraphExecution({
+      user_query: query,
+      profile_id: props.profileId,
+    })
+
+    for await (const chunk of stream) {
+      const messageIndex = messages.value.findIndex(m => m.id === aiMessageId)
+      if (messageIndex !== -1) {
+        messages.value[messageIndex].content += chunk
+      }
+    }
+  } catch (err) {
+    error.value = err instanceof Error ? err.message : 'An error occurred'
+  } finally {
+    isProcessing.value = false
+  }
 }
 
 const addAIMessage = (content: any) => {

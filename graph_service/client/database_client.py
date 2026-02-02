@@ -5,11 +5,10 @@ from typing import Optional
 
 import logging
 
+from config import DATABASE_SERVICE_URL
+
 
 logger = logging.getLogger(__name__)
-
-
-DATABASE_SERVICE_URL = "http://localhost:8003/api/database"
 
 
 async def get_invocation(

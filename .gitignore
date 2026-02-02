@@ -30,3 +30,7 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# dev-only
+requirements-dev.txt
+setup-dev.sh

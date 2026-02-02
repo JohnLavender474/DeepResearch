@@ -15,7 +15,7 @@
 
             <div class="modal-body">
                 <p class="document-info">
-                    Document: <span class="info-value">{{ document.filename }}</span>
+                    Document: <span class="info-value">{{ document!.filename }}</span>
                 </p>
             </div>
 

@@ -11,6 +11,8 @@ mkdir -p ${LOG_DIR}
 
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
+# Check if port 8001 is in use and kill the process if it is
+
 PORT=8001
 if lsof -i :${PORT} > /dev/null 2>&1; then
     PID=$(lsof -i :${PORT} -t)

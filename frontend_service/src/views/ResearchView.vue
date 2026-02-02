@@ -12,8 +12,10 @@
         <div v-else class="component-wrapper">
           <ProfileSelector :profiles="profiles" :loading="profilesLoading" :disabled="profilesLoading"
             :model-value="selectedProfileId" @profile-changed="onProfileChanged" />
+          <!--
           <ChatHistory :profile-id="selectedProfileId" :loading="loading && !selectedProfileId"
             @conversation-selected="onConversationSelected" @new-conversation="onNewConversation" />
+          -->
         </div>
       </aside>
 
@@ -35,7 +37,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-import ChatHistory from '@/components/ChatHistory.vue'
+// import ChatHistory from '@/components/ChatHistory.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles, type Profile } from '@/services/profileService'
@@ -68,6 +70,7 @@ const onProfileChanged = (profileId: string) => {
   }
 }
 
+/*
 const onConversationSelected = (conversationId: string) => {
   selectedConversationId.value = conversationId
 }
@@ -78,6 +81,7 @@ const onNewConversation = () => {
     chatSection.value.clearMessages()
   }
 }
+*/
 
 const onFileUploaded = (filename: string) => {
   console.log(`File uploaded: ${filename}`)

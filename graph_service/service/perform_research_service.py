@@ -198,14 +198,13 @@ async def _search_documents(
     collection_name: str,
     search_query: str,
 ) -> list[SearchResult]:
+    from config import EMBEDDING_SERVICE_URL
+
     logger.debug(f"Searching documents in collection '{collection_name}' with query: {search_query}")
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                (
-                    f"http://localhost:8000/api/embeddings/"
-                    f"collections/{collection_name}/search"
-                ),
+                f"{EMBEDDING_SERVICE_URL}/collections/{collection_name}/search",
                 json={
                     "query": search_query,
                     "top_k": 50,
