@@ -10,8 +10,17 @@
           <div class="spinner"></div>
         </div>
         <div v-else class="component-wrapper">
-          <ProfileSelector :profiles="profiles" :loading="profilesLoading" :disabled="profilesLoading"
-            :model-value="selectedProfileId" @profile-changed="onProfileChanged" />
+          <AddProfileButton
+            :disabled="profilesLoading"
+            @profile-created="onProfileCreated"
+          />
+          <ProfileSelector
+            :profiles="profiles"
+            :loading="profilesLoading"
+            :disabled="profilesLoading"
+            :model-value="selectedProfileId"
+            @profile-changed="onProfileChanged"
+          />
           <!--
           <ChatHistory :profile-id="selectedProfileId" :loading="loading && !selectedProfileId"
             @conversation-selected="onConversationSelected" @new-conversation="onNewConversation" />
@@ -20,14 +29,20 @@
       </aside>
 
       <main class="main-section">
-        <ChatSection ref="chatSection" :conversation-id="selectedConversationId" :profile-id="selectedProfileId"
-          @message-submitted="onMessageSubmitted" />
+        <ChatSection
+          ref="chatSection"
+          :profile-id="selectedProfileId"
+          @message-submitted="onMessageSubmitted"
+        />
       </main>
 
       <aside class="sidebar-right">
         <div class="component-wrapper">
-          <FileManagement :profile-id="selectedProfileId" @file-uploaded="onFileUploaded"
-            @file-deleted="onFileDeleted" />
+          <FileManagement
+            :profile-id="selectedProfileId"
+            @file-uploaded="onFileUploaded"
+            @file-deleted="onFileDeleted"
+          />
         </div>
       </aside>
     </div>
@@ -37,51 +52,53 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-// import ChatHistory from '@/components/ChatHistory.vue'
+import AddProfileButton from '@/components/AddProfileButton.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
-import { fetchProfiles, type Profile } from '@/services/profileService'
+import { fetchProfiles } from '@/services/profileService'
 import ProfileSelector from '@/components/ProfileSelector.vue'
+import type Profile from '@/model/profile'
 
 
 const loading = ref(false)
+
 const profiles = ref<Profile[]>([])
 const profilesLoading = ref(false)
-const selectedProfileId = ref('')
-const selectedConversationId = ref('')
-const chatSection = ref()
 
-const loadProfiles = async () => {
+const selectedProfileId = ref('')
+
+const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = true
+
   profiles.value = await fetchProfiles()
 
   if (profiles.value.length > 0) {
-    selectedProfileId.value = profiles.value[0].id
+    const preferredProfile = preferredProfileId
+      ? profiles.value.find(
+          (profile) => profile.id === preferredProfileId
+        )
+      : null
+
+    if (preferredProfile) {
+      selectedProfileId.value = preferredProfile.id
+    } else {
+      selectedProfileId.value = profiles.value[0].id
+    }
+  } else {
+    selectedProfileId.value = ''
   }
 
   profilesLoading.value = false
 }
 
 const onProfileChanged = (profileId: string) => {
-  selectedProfileId.value = profileId
-  selectedConversationId.value = ''
-  if (chatSection.value) {
-    chatSection.value.clearMessages()
-  }
+  selectedProfileId.value = profileId 
 }
 
-/*
-const onConversationSelected = (conversationId: string) => {
-  selectedConversationId.value = conversationId
+const onProfileCreated = async (profile: Profile) => {
+  console.log(`Profile created: ${profile.id}`)
+  await loadProfiles(selectedProfileId.value)
 }
-
-const onNewConversation = () => {
-  selectedConversationId.value = ''
-  if (chatSection.value) {
-    chatSection.value.clearMessages()
-  }
-}
-*/
 
 const onFileUploaded = (filename: string) => {
   console.log(`File uploaded: ${filename}`)
@@ -92,44 +109,17 @@ const onFileDeleted = (filename: string) => {
 }
 
 const onMessageSubmitted = async (query: string) => {
-  if (chatSection.value) {
-    chatSection.value.setProcessing(true)
-  }
-
+  console.log(`Message submitted: ${query}`)
   try {
     await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const mockAIResponse = {
-      current_result: `Research findings for: "${query}"`,
-      process_selection: {
-        process_type: 'parallel_tasks',
-      },
-      steps: [
-        { type: 'process_selection', details: {} },
-        { type: 'parallel_tasks', details: {} },
-      ],
-      task_entries: [
-        { id: '1', title: 'Task 1' },
-        { id: '2', title: 'Task 2' },
-      ],
-      review: 'This is a sample review of the research findings.',
-    }
-
-    if (chatSection.value) {
-      chatSection.value.addAIMessage(mockAIResponse)
-      chatSection.value.setProcessing(false)
-    }
   } catch (err) {
-    if (chatSection.value) {
-      chatSection.value.setError('Failed to process request')
-      chatSection.value.setProcessing(false)
-    }
+    console.error('Error handling message submission:', err)
   }
 }
 
 onMounted(async () => {
   loading.value = true
-  await loadProfiles()
+  await loadProfiles(null)
   loading.value = false
 })
 </script>
@@ -178,6 +168,7 @@ h1 {
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: 1rem;
 }
 
 .main-section {

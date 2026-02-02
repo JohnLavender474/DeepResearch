@@ -14,29 +14,30 @@ export default defineConfig({
     }
   },
   server: {
-    // Frontend dev server runs on port 8004 - 
-    // this is where users access the UI
-    port: 8004,
+    port: 5173,
     host: '0.0.0.0',
+    watch: {
+      usePolling: true,
+    },
+    hmr: {
+      host: 'localhost',
+      port: 8004,
+    },
     proxy: {
-      // Proxy routes forward frontend requests to backend services.
-      // The browser sees all requests as same-origin (port 8004),
-      // which solves CORS issues. Example: fetch('/graph/...') 
-      // is transparently forwarded to http://localhost:8001/graph/...
       '/api/embeddings': {
-        target: 'http://localhost:8000',
+        target: 'http://embedding_service:8000',
         changeOrigin: true
       },
       '/api/graph': {
-        target: 'http://localhost:8001',
+        target: 'http://graph_service:8001',
         changeOrigin: true
       },
       '/api/storage': {
-        target: 'http://localhost:8002',
+        target: 'http://storage_service:8002',
         changeOrigin: true
       }, 
       '/api/database': {
-        target: 'http://localhost:8003',
+        target: 'http://database_service:8003',
         changeOrigin: true
       }    
     }

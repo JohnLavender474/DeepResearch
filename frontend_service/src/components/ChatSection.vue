@@ -17,7 +17,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 import ChatMessages from './ChatMessages.vue'
 import UserInput from './UserInput.vue'
 import { streamGraphExecution } from '@/services/graphService'
@@ -30,8 +30,7 @@ interface ChatMessage {
   timestamp: Date
 }
 
-interface ChatSectionProps {
-  conversationId: string
+interface ChatSectionProps {  
   profileId: string
 }
 
@@ -114,13 +113,6 @@ const clearMessages = () => {
 const setError = (errorMessage: string) => {
   error.value = errorMessage
 }
-
-watch(
-  () => props.conversationId,
-  () => {
-    clearMessages()
-  }
-)
 
 defineExpose({
   addAIMessage,

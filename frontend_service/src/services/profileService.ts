@@ -1,7 +1,6 @@
-export interface Profile {
-  id: string
-  created_at: string
-}
+import type Profile from '@/model/profile'
+import type ProfileCreate from '@/model/profileCreate'
+
 
 export async function fetchProfiles(): Promise<Profile[]> {
   try {
@@ -12,4 +11,27 @@ export async function fetchProfiles(): Promise<Profile[]> {
     console.error('Failed to fetch profiles:', error)
     return []
   }
+}
+
+export async function createProfile(
+  profile: ProfileCreate
+): Promise<Profile> {
+  const response = await fetch('/api/database/profiles', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(profile),
+  })
+
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null)
+    const message =
+      errorBody?.detail ??
+      `Failed to create profile: ${response.status}`
+    throw new Error(message)
+  }
+
+  const data = await response.json()
+  return data
 }

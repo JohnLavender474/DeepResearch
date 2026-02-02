@@ -147,9 +147,13 @@ services:
     build:
       context: ./frontend_service
       dockerfile: Dockerfile
+      target: dev
     image: deepresearch/frontend_service
     ports:
-      - "8004:8004"
+      - "8004:5173"
+    volumes:
+      - ./frontend_service:/app
+      - /app/node_modules
     depends_on:
       database_service:
         condition: service_healthy
