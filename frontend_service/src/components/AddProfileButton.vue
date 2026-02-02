@@ -6,7 +6,7 @@
       :disabled="props.disabled"
       @click="openModal"
     >
-      Add Profile
+      + Add Profile
     </button>
 
     <CreateProfileModal

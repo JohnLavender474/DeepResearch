@@ -33,5 +33,26 @@ export async function createProfile(
   }
 
   const data = await response.json()
+
+  try {
+    const collectionResponse = await fetch(
+      `/api/embeddings/collections/${profile.id}`,
+      {
+        method: 'POST',
+      }
+    )
+
+    if (!collectionResponse.ok) {
+      console.error(
+        `Failed to create collection for profile ${profile.id}: ${collectionResponse.status}`
+      )
+    }
+  } catch (error) {
+    console.error(
+      `Failed to create collection for profile ${profile.id}:`,
+      error
+    )
+  }
+
   return data
 }

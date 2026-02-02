@@ -21,16 +21,19 @@
             :model-value="selectedProfileId"
             @profile-changed="onProfileChanged"
           />
-          <!--
-          <ChatHistory :profile-id="selectedProfileId" :loading="loading && !selectedProfileId"
-            @conversation-selected="onConversationSelected" @new-conversation="onNewConversation" />
-          -->
+          <ChatHistory
+            :profile-id="selectedProfileId"
+            :loading="loading && !selectedProfileId"
+            @conversation-selected="onConversationSelected"
+            @new-conversation="onNewConversation"
+          />
         </div>
       </aside>
 
       <main class="main-section">
         <ChatSection
           ref="chatSection"
+          :conversation-id="selectedConversationId"
           :profile-id="selectedProfileId"
           @message-submitted="onMessageSubmitted"
         />
@@ -50,15 +53,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 
 import AddProfileButton from '@/components/AddProfileButton.vue'
+import ChatHistory from '@/components/ChatHistory.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles } from '@/services/profileService'
 import ProfileSelector from '@/components/ProfileSelector.vue'
 import type Profile from '@/model/profile'
+import { useLocalStorage } from '@/composables/useLocalStorage'
 
+
+const storage = useLocalStorage()
 
 const loading = ref(false)
 
@@ -67,22 +74,37 @@ const profilesLoading = ref(false)
 
 const selectedProfileId = ref('')
 
+const selectedConversationId = ref('')
+const chatSection = ref()
+
 const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = true
 
   profiles.value = await fetchProfiles()
 
   if (profiles.value.length > 0) {
+    const storedProfileId = storage.getSelectedProfile()
     const preferredProfile = preferredProfileId
       ? profiles.value.find(
           (profile) => profile.id === preferredProfileId
         )
-      : null
+      : storedProfileId
+        ? profiles.value.find(
+            (profile) => profile.id === storedProfileId
+          )
+        : null
 
     if (preferredProfile) {
       selectedProfileId.value = preferredProfile.id
     } else {
       selectedProfileId.value = profiles.value[0].id
+    }
+
+    const storedConversationId = storage.getConversationForProfile(
+      selectedProfileId.value
+    )
+    if (storedConversationId) {
+      selectedConversationId.value = storedConversationId
     }
   } else {
     selectedProfileId.value = ''
@@ -92,12 +114,47 @@ const loadProfiles = async (preferredProfileId: string | null) => {
 }
 
 const onProfileChanged = (profileId: string) => {
-  selectedProfileId.value = profileId 
+  selectedProfileId.value = profileId
+  storage.setSelectedProfile(profileId)
+
+  const storedConversationId = storage.getConversationForProfile(profileId)
+  if (storedConversationId) {
+    selectedConversationId.value = storedConversationId
+  } else {
+    selectedConversationId.value = ''
+    if (chatSection.value) {
+      chatSection.value.clearMessages()
+    }
+  }
 }
 
 const onProfileCreated = async (profile: Profile) => {
   console.log(`Profile created: ${profile.id}`)
-  await loadProfiles(selectedProfileId.value)
+  await loadProfiles(profile.id)
+  selectedConversationId.value = ''
+  if (chatSection.value) {
+    chatSection.value.clearMessages()
+  }
+}
+
+const onConversationSelected = (conversationId: string) => {
+  selectedConversationId.value = conversationId
+  if (selectedProfileId.value) {
+    storage.setConversationForProfile(
+      selectedProfileId.value,
+      conversationId
+    )
+  }
+}
+
+const onNewConversation = () => {
+  selectedConversationId.value = ''
+  if (selectedProfileId.value) {
+    storage.clearConversationForProfile(selectedProfileId.value)
+  }
+  if (chatSection.value) {
+    chatSection.value.clearMessages()
+  }
 }
 
 const onFileUploaded = (filename: string) => {
@@ -121,6 +178,12 @@ onMounted(async () => {
   loading.value = true
   await loadProfiles(null)
   loading.value = false
+})
+
+watch(selectedProfileId, (newProfileId) => {
+  if (newProfileId) {
+    storage.setSelectedProfile(newProfileId)
+  }
 })
 </script>
 
