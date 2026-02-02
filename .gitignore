@@ -4,6 +4,7 @@
 .idea
 **/.env
 **/blob_storage/
+.github
 
 # Frontend
 **/node_modules/
@@ -23,7 +24,7 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Editor directories and files
-.vscode/*
+.vscode
 !.vscode/extensions.json
 *.suo
 *.ntvs*
