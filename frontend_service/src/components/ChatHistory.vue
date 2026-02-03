@@ -5,17 +5,21 @@
         </div>
 
         <div class="chat-list">
-            <div v-if="conversations.length === 0 && loading" class="loading-indicator">
+            <div v-if="props.conversations.length === 0 && props.loading" class="loading-indicator">
                 <div class="spinner"></div>
                 Loading conversations...
             </div>
-            <div v-else-if="conversations.length === 0" class="no-conversations">
+            <div v-else-if="props.conversations.length === 0" class="no-conversations">
                 No conversations available
             </div>
             <div v-else>
-                <div v-for="conversation in conversations" :key="conversation.id" class="conversation-item"
-                    :class="{ active: conversation.id === selectedConversationId }"
-                    @click="selectConversation(conversation.id)">
+                <div
+                    v-for="conversation in props.conversations"
+                    :key="conversation.id"
+                    class="conversation-item"
+                    :class="{ active: conversation.id === props.selectedConversationId }"
+                    @click="selectConversation(conversation.id)"
+                >
                     <div class="conversation-title">{{ conversation.title || 'Untitled' }}</div>
                     <div class="conversation-date">{{ formatDate(conversation.updated_at) }}</div>
                 </div>
@@ -29,15 +33,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-
 import type Conversation from '@/model/conversation'
-import { fetchConversationsForProfile } from '@/services/conversationService'
 import '@/styles/shared.css'
 
 
 interface ChatHistoryProps {
     profileId: string
+    conversations: Conversation[]
+    loading: boolean
+    selectedConversationId: string
 }
 
 const props = defineProps<ChatHistoryProps>()
@@ -47,43 +51,12 @@ const emit = defineEmits<{
     (e: 'new-conversation'): void
 }>()
 
-const conversations = ref<Conversation[]>([])
-const selectedConversationId = ref<string>('')
-
-const loading = ref(false)
-
-const loadConversations = async (profileId: string) => {
-    loading.value = true
-
-    try {
-        conversations.value = await fetchConversationsForProfile(profileId)
-    } catch (error) {
-        console.error('Failed to fetch conversations:', error)
-        conversations.value = []
-    } finally {
-        loading.value = false
-    }
-
-    selectedConversationId.value = ''
-}
-
 const selectConversation = (conversationId: string) => {
-    selectedConversationId.value = conversationId
     emit('conversation-selected', conversationId)
 }
 
-const deselectConversation = () => {
-    selectedConversationId.value = ''
-}
-
 const startNewConversation = () => {
-    selectedConversationId.value = ''
     emit('new-conversation')
-}
-
-const addConversation = (conversation: Conversation) => {
-    conversations.value.unshift(conversation)
-    selectedConversationId.value = conversation.id
 }
 
 const formatDate = (dateString: string): string => {
@@ -93,22 +66,6 @@ const formatDate = (dateString: string): string => {
         day: 'numeric',
     })
 }
-
-watch(
-    () => props.profileId,
-    (newProfileId) => {
-        if (newProfileId) {
-            loadConversations(newProfileId)
-        }
-    },
-    { immediate: true }
-)
-
-defineExpose({
-    deselectConversation,
-    addConversation,
-    selectConversation,
-})
 </script>
 
 <style scoped>

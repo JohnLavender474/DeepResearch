@@ -2,9 +2,11 @@ import { ref, computed } from "vue";
 
 import type ChatMessageViewModel from "@/model/chatMessageViewModel";
 import type AIMessageContent from "@/model/aiMessageContent";
+import type Conversation from "@/model/conversation";
 import type GraphStep from "@/model/graphStep";
 import {
   fetchConversation,
+  fetchConversationsForProfile,
   createConversation,
 } from "@/services/conversationService";
 import { createChatTurn, updateChatTurn } from "@/services/chatTurnService";
@@ -12,21 +14,121 @@ import { streamGraphExecution } from "@/services/graphService";
 import { fetchInvocation } from "@/services/invocationService";
 
 
+const INVOCATION_POLL_INTERVAL = 3000;
+
 export function useChatSession() {
   const messages = ref<ChatMessageViewModel[]>([]);
+  const conversations = ref<Conversation[]>([]);
 
   const isProcessing = ref(false);
   const isLoadingConversation = ref(false);
+  const isLoadingConversations = ref(false);
 
   const error = ref("");
 
   const currentConversationId = ref("");
   const currentProfileId = ref("");
 
+  let pollingIntervalId: number | null = null;
+
+  const stopPolling = () => {
+    if (pollingIntervalId !== null) {
+      clearInterval(pollingIntervalId);
+      pollingIntervalId = null;
+      console.log("Stopped polling for invocation status");
+    }
+  };
+
+  const pollInvocationStatus = async (
+    profileId: string,
+    invocationId: string,
+    messageId: string
+  ) => {
+    try {
+      const invocation = await fetchInvocation(profileId, invocationId);
+
+      const messageIndex = messages.value.findIndex((m) => m.id === messageId);      
+
+      if (messageIndex !== -1) {
+        const oldContent = messages.value[messageIndex].content as AIMessageContent;
+
+        const updatedContent: AIMessageContent = {
+          invocation_id: invocation.invocation_id,
+          status: invocation.status as AIMessageContent['status'],
+          steps: invocation.graph_state?.steps || [],
+          final_result: invocation.graph_state?.current_result,
+          error_message: invocation.graph_state?.error,
+        };
+
+        if (JSON.stringify(oldContent.steps) !== JSON.stringify(updatedContent.steps)) {
+          console.log(
+            `Invocation ${invocationId} steps updated:`,
+            updatedContent.steps
+          );
+
+          messages.value[messageIndex].content = updatedContent;
+        }        
+
+        if (
+          invocation.status === 'completed' ||
+          invocation.status === 'stopped' ||
+          invocation.status === 'error'
+        ) {
+          isProcessing.value = false;
+          stopPolling();
+          console.log(
+            `Invocation ${invocationId} reached terminal state: ${invocation.status}`
+          );
+        }
+      } else {
+        console.warn(`Message with ID ${messageId} not found during polling`);
+        stopPolling();
+      }
+    } catch (err) {
+      console.error("Error polling invocation status:", err);
+    }
+  };
+
+  const startPolling = (
+    profileId: string,
+    invocationId: string,
+    messageId: string
+  ) => {
+    stopPolling();
+
+    console.log(`Starting to poll invocation ${invocationId}`);
+
+    pollingIntervalId = window.setInterval(() => {
+      pollInvocationStatus(profileId, invocationId, messageId);
+    }, INVOCATION_POLL_INTERVAL);
+
+    pollInvocationStatus(profileId, invocationId, messageId);
+  };
+
+  const loadConversations = async (profileId: string) => {
+    if (!profileId) {
+      conversations.value = [];
+      return;
+    }
+
+    isLoadingConversations.value = true;
+
+    try {
+      conversations.value = await fetchConversationsForProfile(profileId);
+    } catch (err) {
+      console.error("Failed to fetch conversations:", err);
+      conversations.value = [];
+    } finally {
+      isLoadingConversations.value = false;
+    }
+  };
+
   const loadConversation = async (
     conversationId: string,
     profileId: string,
   ) => {
+    stopPolling();
+
     if (!conversationId) {
       console.warn("No conversation ID provided");
 
@@ -37,6 +139,7 @@ export function useChatSession() {
     }
 
     isLoadingConversation.value = true;
+    isProcessing.value = false;
 
     error.value = "";
     
@@ -103,6 +206,24 @@ export function useChatSession() {
         }
 
         messages.value = loadedMessages;
+
+        const lastMessage = loadedMessages[loadedMessages.length - 1];
+        if (
+          lastMessage &&
+          lastMessage.role === 'ai' &&
+          typeof lastMessage.content === 'object' &&
+          lastMessage.content.status === 'running'
+        ) {
+          isProcessing.value = true;
+
+          if (lastMessage.content.invocation_id) {
+            startPolling(
+              profileId,
+              lastMessage.content.invocation_id,
+              lastMessage.id
+            );
+          }
+        }
       } else {
         console.warn("Conversation not found");
         
@@ -169,6 +290,8 @@ export function useChatSession() {
 
       try {
         activeConversationId = await createNewConversation(profileId, query);
+
+        loadConversations(profileId);
       } catch (err) {
         error.value =
           err instanceof Error ? err.message : "Failed to create conversation";
@@ -396,18 +519,23 @@ export function useChatSession() {
   };
 
   const clearChatSession = () => {
+    stopPolling();
     messages.value = [];
     currentConversationId.value = "";
     currentProfileId.value = "";
     error.value = "";
+    isProcessing.value = false;
   };
 
   return {
     messages: computed(() => messages.value),
+    conversations: computed(() => conversations.value),
     isProcessing: computed(() => isProcessing.value),
     isLoadingConversation: computed(() => isLoadingConversation.value),
+    isLoadingConversations: computed(() => isLoadingConversations.value),
     error: computed(() => error.value),
     currentConversationId: computed(() => currentConversationId.value),
+    loadConversations,
     loadConversation,
     createNewConversation,
     submitMessage,

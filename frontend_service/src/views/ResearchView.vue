@@ -25,7 +25,9 @@
 
           <ChatHistory            
             :profile-id="selectedProfileId"
-            :loading="loading && !selectedProfileId"
+            :conversations="conversations"
+            :loading="isLoadingConversations"
+            :selected-conversation-id="currentConversationId"
             @conversation-selected="onConversationSelected"
             @new-conversation="onNewConversation"
           />
@@ -85,10 +87,13 @@ const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
 
 const {
   messages,
+  conversations,
   isProcessing,
   isLoadingConversation,
+  isLoadingConversations,
   error,
   currentConversationId,
+  loadConversations,
   loadConversation,
   submitMessage,
   clearChatSession,
@@ -116,6 +121,8 @@ const loadProfiles = async (preferredProfileId: string | null) => {
     } else {
       selectedProfileId.value = profiles.value[0].id
     }
+
+    await loadConversations(selectedProfileId.value)
   } else {
     selectedProfileId.value = ''
   }
@@ -123,11 +130,13 @@ const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = false
 }
 
-const onProfileChanged = (profileId: string) => {
+const onProfileChanged = async (profileId: string) => {
   selectedProfileId.value = profileId
   storage.setSelectedProfile(profileId)
 
   clearChatSession()
+
+  await loadConversations(profileId)
 }
 
 const onProfileCreated = async (profile: Profile) => {
