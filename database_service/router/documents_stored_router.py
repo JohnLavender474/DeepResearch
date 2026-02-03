@@ -22,7 +22,7 @@ router = APIRouter(
 )
 
 
-@router.post("/documents-stored/{profile_id}")
+@router.post("/{profile_id}/documents-stored")
 def create_document_stored(
     profile_id: str,
     document: DocumentsStoredCreate,
@@ -42,7 +42,7 @@ def create_document_stored(
     return created
 
 
-@router.delete("/documents-stored/{profile_id}/{filename}")
+@router.delete("/{profile_id}/documents-stored/{filename}")
 def delete_document_stored(
     filename: str,
     profile_id: str,
@@ -72,7 +72,7 @@ def delete_document_stored(
     return {"status": "ok", "filename": filename}
 
 
-@router.get("/documents-stored/{profile_id}")
+@router.get("/{profile_id}/documents-stored")
 def get_documents_by_profile(
     profile_id: str,
     db: Session = Depends(get_db),

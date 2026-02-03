@@ -78,7 +78,7 @@ async def upload_blob(
         async with httpx.AsyncClient() as client:
             try:
                 await client.post(
-                    f"{DATABASE_SERVICE_URL}/documents-stored/{collection_name}",
+                    f"{DATABASE_SERVICE_URL}/{collection_name}/documents-stored",
                     json={
                         "filename": file.filename,                        
                     },
@@ -187,7 +187,7 @@ async def delete_blob(
         async with httpx.AsyncClient() as client:
             try:
                 await client.delete(
-                    f"{DATABASE_SERVICE_URL}/documents-stored/{collection_name}/{filename}",
+                    f"{DATABASE_SERVICE_URL}/{collection_name}/documents-stored/{filename}",
                 )
             except httpx.HTTPStatusError as http_exc:
                 if http_exc.response.status_code == 404:

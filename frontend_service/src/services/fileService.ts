@@ -15,7 +15,7 @@ export async function fetchFilesForProfile(
 ): Promise<FileInfo[]> {
   try {
     const storedResponse = await fetch(
-      `/api/database/documents-stored/${profileId}`
+      `/api/database/${profileId}/documents-stored`
     );
 
     if (!storedResponse.ok) {
