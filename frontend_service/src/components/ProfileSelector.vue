@@ -22,7 +22,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
-import type { Profile } from '@/services/profileService'
+import type Profile from '@/model/profile'
 
 
 interface ProfileSelectorProps {

@@ -390,7 +390,7 @@ export function useChatSession() {
 
           for (const event of events) {
             if (event.startsWith("data: ")) {
-              const jsonData = event.substring(6);
+              const jsonData = event.substring(6).trim();
               const parsedData = JSON.parse(jsonData);
 
               console.log("Stream event received:", parsedData);
@@ -425,7 +425,8 @@ export function useChatSession() {
               }
 
               if (
-                parsedData.event_type === 'node_complete' &&
+                (parsedData.event_type === 'node_complete' ||
+                  parsedData.event_type === 'heartbeat') &&
                 currentInvocationId
               ) {
                 try {

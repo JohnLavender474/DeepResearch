@@ -1,6 +1,34 @@
 <template>
   <div class="user-input">
-    <form @submit.prevent="onSubmit" class="input-form">
+    <div class="header">
+      <button
+        type="button"
+        class="toggle-button"
+        @click="isCollapsed = !isCollapsed"
+        :aria-label="isCollapsed ? 'Show input' : 'Hide input'"
+      >
+        <svg
+          :class="{ 'rotated': !isCollapsed }"
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </button>
+    </div>
+
+    <form
+      v-show="!isCollapsed"
+      @submit.prevent="onSubmit"
+      class="input-form"
+    >
       <textarea
         ref="textareaRef"
         v-model="query"
@@ -39,6 +67,7 @@ const emit = defineEmits<{
 }>()
 
 const query = ref('')
+const isCollapsed = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
 const isValidInput = computed(() => query.value.trim().length > 0)
@@ -80,10 +109,40 @@ defineExpose({
 
 <style scoped>
 .user-input {
-  padding: 1.5rem;
+  padding: 0.5rem 1.5rem 1.5rem;
   border-top: 1px solid #e2e8f0;
   background-color: #f8fafc;
   flex-shrink: 0;
+}
+
+.header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+}
+
+.toggle-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem;
+  color: #64748b;
+  transition: color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toggle-button:hover {
+  color: #42b983;
+}
+
+.toggle-button svg {
+  transition: transform 0.3s ease;
+}
+
+.toggle-button svg.rotated {
+  transform: rotate(180deg);
 }
 
 .input-form {
@@ -98,7 +157,7 @@ textarea {
   border: 1px solid #cbd5e1;
   border-radius: 6px;
   font-family: inherit;
-  resize: vertical;
+  resize: none;
   transition: border-color 0.2s;
 }
 

@@ -61,6 +61,16 @@
                       :defaultExpanded="false"
                     >
                       <div v-if="taskEntry.result" class="task-result">
+                        <div class="markdown-header">
+                          <button
+                            class="copy-button"
+                            @click="copyToClipboard(taskEntry.result, `task-${index}-${taskIndex}`)"
+                            :title="copiedStates[`task-${index}-${taskIndex}`] ? 'Copied!' : 'Copy to clipboard'"
+                          >
+                            <Check v-if="copiedStates[`task-${index}-${taskIndex}`]" :size="16" />
+                            <Copy v-else :size="16" />
+                          </button>
+                        </div>
                         <div class="task-result-content markdown-content" v-html="renderMarkdown(taskEntry.result)"></div>
                       </div>
 
@@ -116,6 +126,16 @@
         :defaultExpanded="true"
       >
         <div class="result-completed">
+          <div class="markdown-header">
+            <button
+              class="copy-button"
+              @click="copyToClipboard(content.final_result || '', 'final-result')"
+              :title="copiedStates['final-result'] ? 'Copied!' : 'Copy to clipboard'"
+            >
+              <Check v-if="copiedStates['final-result']" :size="16" />
+              <Copy v-else :size="16" />
+            </button>
+          </div>
           <div class="result-content-scrollable markdown-content" v-html="renderMarkdown(content.final_result || '')"></div>
         </div>
       </CollapsibleSection>
@@ -150,8 +170,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { marked } from 'marked'
+import { Copy, Check } from 'lucide-vue-next'
 
 import CollapsibleSection from './CollapsibleSection.vue'
 import type AIMessageContent from '@/model/aiMessageContent'
@@ -166,6 +187,20 @@ interface AIChatMessageProps {
 }
 
 const props = defineProps<AIChatMessageProps>()
+
+const copiedStates = ref<Record<string, boolean>>({})
+
+const copyToClipboard = async (text: string, key: string) => {
+  try {
+    await navigator.clipboard.writeText(text)
+    copiedStates.value[key] = true
+    setTimeout(() => {
+      copiedStates.value[key] = false
+    }, 2000)
+  } catch (err) {
+    console.error('Failed to copy text:', err)
+  }
+}
 
 const formatTime = (date: Date): string => {
   return date.toLocaleTimeString('en-US', {
@@ -465,6 +500,36 @@ const renderMarkdown = (markdown: string) => {
 
 .task-result {
   margin-bottom: 0.75rem;
+  position: relative;
+}
+
+.markdown-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 0.5rem;
+}
+
+.copy-button {
+  background: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  padding: 0.25rem 0.5rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.copy-button:hover {
+  background: #e2e8f0;
+  color: #334155;
+  border-color: #94a3b8;
+}
+
+.copy-button:active {
+  transform: scale(0.95);
 }
 
 .task-result-content {
