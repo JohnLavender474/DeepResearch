@@ -16,10 +16,41 @@
       >
         {{ statusLabel }}
       </span>
+      <div class="loading-state" v-if="isLoading">
+        <div class="spinner"></div>
+        <span>Processing...</span>
+      </div>
     </div>
 
     <div class="message-body">
       <CollapsibleSection
+        v-if="content.status === 'stopped'"
+        title="Execution Stopped"
+        :defaultExpanded="true"
+      >
+        <div class="result-warning">
+          <div class="result-header">⚠️ Stopped</div>
+          <div class="result-content">
+            The graph execution was stopped before completion.
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        v-else-if="content.status === 'error'"
+        title="Execution Error"
+        :defaultExpanded="true"
+      >
+        <div class="result-error">
+          <div class="result-header">❌ Error</div>
+          <div class="result-content">
+            {{ content.error_message || 'An unknown error occurred' }}
+          </div>
+        </div>
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        v-else
         title="Graph Execution"
         :badge="stepCountBadge"
         :defaultExpanded="false"
@@ -122,6 +153,27 @@
                   </div>
                 </div>
 
+                <div v-else-if="isSimpleProcessStep(step.type)" class="step-content">
+                  <div class="markdown-header">
+                    <button
+                      class="icon-button"
+                      @click="openModal('Direct Response', step.details?.output?.result || '')"
+                      title="View in modal"
+                    >
+                      <Maximize2 :size="16" />
+                    </button>
+                    <button
+                      class="icon-button"
+                      @click="copyToClipboard(step.details?.output?.result || '', `simple-process-${index}`)"
+                      :title="copiedStates[`simple-process-${index}`] ? 'Copied!' : 'Copy to clipboard'"
+                    >
+                      <Check v-if="copiedStates[`simple-process-${index}`]" :size="16" />
+                      <Copy v-else :size="16" />
+                    </button>
+                  </div>
+                  <div class="markdown-content" v-html="renderMarkdown(step.details?.output?.result || '')"></div>
+                </div>
+
                 <div v-else-if="isReviewStep(step.type)" class="step-content">
                   <div class="markdown-header">
                     <button
@@ -175,44 +227,7 @@
             </div>
           </template>
         </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        v-if="isLoading"
-        title="Generating Result"
-        :defaultExpanded="true"
-      >
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <span>Processing...</span>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        v-if="content.status === 'stopped'"
-        title="Execution Stopped"
-        :defaultExpanded="true"
-      >
-        <div class="result-warning">
-          <div class="result-header">⚠️ Stopped</div>
-          <div class="result-content">
-            The graph execution was stopped before completion.
-          </div>
-        </div>
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        v-else-if="content.status === 'error'"
-        title="Execution Error"
-        :defaultExpanded="true"
-      >
-        <div class="result-error">
-          <div class="result-header">❌ Error</div>
-          <div class="result-content">
-            {{ content.error_message || 'An unknown error occurred' }}
-          </div>
-        </div>
-      </CollapsibleSection>
+      </CollapsibleSection>      
     </div>
   </div>
 </template>
@@ -315,6 +330,10 @@ const isProcessSelectionStep = (stepType: string): boolean => {
   return stepType === 'process_selection'
 }
 
+const isSimpleProcessStep = (stepType: string): boolean => {
+  return stepType === 'simple_process'
+}
+
 const isReviewStep = (stepType: string): boolean => {
   return stepType === 'perform_review'
 }
@@ -324,7 +343,11 @@ const isSummaryStep = (stepType: string): boolean => {
 }
 
 const isExpandableStep = (stepType: string): boolean => {
-  return isTaskStep(stepType) || isProcessSelectionStep(stepType) || isReviewStep(stepType) || isSummaryStep(stepType)
+  return isTaskStep(stepType) || 
+    isProcessSelectionStep(stepType) || 
+    isReviewStep(stepType) || 
+    isSummaryStep(stepType) || 
+    isSimpleProcessStep(stepType)
 }
 
 const getTaskEntries = (step: GraphStep): TaskEntry[] => {

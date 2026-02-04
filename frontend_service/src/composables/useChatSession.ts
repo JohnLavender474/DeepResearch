@@ -10,7 +10,7 @@ import {
   createConversation,
 } from "@/services/conversationService";
 import { createChatTurn, updateChatTurn } from "@/services/chatTurnService";
-import { streamGraphExecution } from "@/services/graphService";
+import { streamGraphExecution, type SimpleMessage } from "@/services/graphService";
 import { fetchInvocation } from "@/services/invocationService";
 
 
@@ -302,6 +302,22 @@ export function useChatSession() {
       }
     }
 
+    const chatHistory: SimpleMessage[] = messages.value      
+      .map((msg) => {
+        if (msg.role === "user") {
+          return {
+            role: "human",
+            content: msg.content as string,
+          };
+        } else {
+          const aiContent = msg.content as AIMessageContent;
+          return {
+            role: "ai",
+            content: aiContent.final_result || "",
+          };
+        }
+      });
+
     const userTimestamp = new Date().toISOString();
 
     try {
@@ -370,11 +386,12 @@ export function useChatSession() {
     }
 
     try {
-      console.log("Starting graph execution stream for query:", query);
+      console.log("Starting graph execution stream for query:", query);    
 
       const stream = streamGraphExecution({
         user_query: query,
         profile_id: profileId,
+        messages: chatHistory,
       });
 
       let invocationIdSet = false;
