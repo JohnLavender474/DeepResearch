@@ -57,10 +57,16 @@ async def stream_graph(
         yield f"data: {json.dumps(event_data)}\n\n"
 
         # Convert input messages to GraphState format
+        # Only consider the last 4 messages to avoid context overload
 
         graph_state_messages: list[BaseMessage] = []
+        recent_messages = (
+            input_data.messages[-4:] 
+            if len(input_data.messages) > 4 
+            else input_data.messages
+        )
 
-        for message in input_data.messages:
+        for message in recent_messages:
             if message.role == "human":
                 graph_state_messages.append(
                     HumanMessage(content=message.content)
