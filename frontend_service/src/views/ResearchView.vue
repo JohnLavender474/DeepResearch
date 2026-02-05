@@ -299,8 +299,9 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 .research-container {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 2rem);
-  padding: 1rem;
+  height: 100%;
+  width: 100%;
+  padding: 1.5rem 1.5rem 0 1.5rem;
   background-color: var(--color-bg-1);
 }
 
@@ -412,7 +413,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   overflow: hidden;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .mobile-controls {
     display: flex;
   }

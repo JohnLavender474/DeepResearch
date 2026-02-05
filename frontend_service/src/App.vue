@@ -67,10 +67,10 @@ nav a.router-link-active::after {
 }
 
 main {
-  padding: 0 2rem;
-  padding-top: 4rem;
-  max-width: 1200px;
-  margin: 0 auto;
-  width: 100%;  
+  padding: 0;
+  padding-top: 4rem;  
+  width: 100%;
+  height: calc(100vh - 4rem);
+  overflow: hidden;
 }
 </style>
