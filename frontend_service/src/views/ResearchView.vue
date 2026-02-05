@@ -1,7 +1,41 @@
 <template>
   <div class="research-container">
+    <div class="mobile-controls">
+      <button
+        class="sidebar-toggle"
+        @click="toggleLeftSidebar"
+        :class="{ active: isLeftSidebarOpen }"
+      >
+        <span class="toggle-icon">☰</span>
+        <span class="toggle-text">Chats</span>
+      </button>
+      <button
+        class="sidebar-toggle"
+        @click="toggleRightSidebar"
+        :class="{ active: isRightSidebarOpen }"
+      >
+        <span class="toggle-text">Files</span>
+        <span class="toggle-icon">📁</span>
+      </button>
+    </div>
+
+    <div
+      v-if="isLeftSidebarOpen || isRightSidebarOpen"
+      class="sidebar-backdrop"
+      @click="closeSidebars"
+    ></div>
+
     <div class="content-area">
-      <aside class="sidebar">
+      <aside
+        class="sidebar"
+        :class="{ 'sidebar-open': isLeftSidebarOpen }"
+      >
+        <button
+          class="sidebar-close"
+          @click="closeLeftSidebar"
+        >
+          ✕
+        </button>
         <div v-if="loading && !selectedProfileId" class="loader">
           <div class="spinner"></div>
         </div>
@@ -43,7 +77,16 @@
         />
       </main>
 
-      <aside class="sidebar-right">
+      <aside
+        class="sidebar-right"
+        :class="{ 'sidebar-open': isRightSidebarOpen }"
+      >
+        <button
+          class="sidebar-close"
+          @click="closeRightSidebar"
+        >
+          ✕
+        </button>
         <div class="component-wrapper">
           <FileManagement
             :profile-id="selectedProfileId"
@@ -80,6 +123,36 @@ const profilesLoading = ref(false)
 const selectedProfileId = ref('')
 
 const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
+
+const isLeftSidebarOpen = ref(false)
+const isRightSidebarOpen = ref(false)
+
+const toggleLeftSidebar = () => {
+  isLeftSidebarOpen.value = !isLeftSidebarOpen.value
+  if (isLeftSidebarOpen.value) {
+    isRightSidebarOpen.value = false
+  }
+}
+
+const toggleRightSidebar = () => {
+  isRightSidebarOpen.value = !isRightSidebarOpen.value
+  if (isRightSidebarOpen.value) {
+    isLeftSidebarOpen.value = false
+  }
+}
+
+const closeLeftSidebar = () => {
+  isLeftSidebarOpen.value = false
+}
+
+const closeRightSidebar = () => {
+  isRightSidebarOpen.value = false
+}
+
+const closeSidebars = () => {
+  isLeftSidebarOpen.value = false
+  isRightSidebarOpen.value = false
+}
 
 const {
   messages,
@@ -149,6 +222,8 @@ const onConversationSelected = (conversationId: string) => {
       selectedProfileId.value,
       conversationId
     )
+
+    closeLeftSidebar()
   }
 }
 
@@ -229,6 +304,60 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   background-color: var(--color-bg-1);
 }
 
+.mobile-controls {
+  display: none;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-shrink: 0;
+}
+
+.sidebar-toggle {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--size-border-radius);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  transition: all var(--transition-base);
+}
+
+.sidebar-toggle:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.sidebar-toggle.active {
+  background-color: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+.toggle-icon {
+  font-size: 1.2rem;
+}
+
+.toggle-text {
+  font-weight: 600;
+}
+
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+}
+
 .content-area {
   display: grid;
   grid-template-columns: 280px 1fr 300px;
@@ -237,18 +366,35 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   min-height: 0;
 }
 
-.sidebar {
-  height: 90%;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
+.sidebar,
 .sidebar-right {
   height: 90%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  position: relative;
+}
+
+.sidebar-close {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1001;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: var(--color-text-primary);
+  transition: all var(--transition-base);
+}
+
+.sidebar-close:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-primary);
 }
 
 .component-wrapper {
@@ -267,13 +413,68 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 }
 
 @media (max-width: 1200px) {
+  .mobile-controls {
+    display: flex;
+  }
+
+  .sidebar-backdrop {
+    display: block;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-base);
+  }
+
+  .sidebar-backdrop:has(~ .content-area .sidebar-open) {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   .content-area {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
+    position: relative;
+  }
+
+  .sidebar,
+  .sidebar-right {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    width: 320px;
+    height: 100vh;
+    z-index: 1000;
+    background-color: var(--color-bg-1);
+    border: 1px solid var(--color-border);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    transition: transform var(--transition-slow);
+    padding: 1rem;
   }
 
   .sidebar {
-    height: 200px;
+    left: 0;
+    transform: translateX(-100%);
+  }
+
+  .sidebar-right {
+    right: 0;
+    transform: translateX(100%);
+  }
+
+  .sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-right.sidebar-open {
+    transform: translateX(0);
+  }
+
+  .sidebar-close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .component-wrapper {
+    margin-top: 2.5rem;
   }
 }
 </style>
