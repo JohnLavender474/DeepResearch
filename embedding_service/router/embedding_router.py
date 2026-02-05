@@ -206,23 +206,32 @@ async def upload_document(
         tmp_path = tmp_file.name
 
     try:
-        logger.debug(f"Storing blob for document: {file.filename}")       
-
         logger.debug(f"Processing document: {file.filename}")
-        points = document_processor.process_document(
+        
+        batch_size = 64
+        batch = []
+        total_chunks = 0
+        all_points = []
+        
+        for point in document_processor.process_document(
             file_path=tmp_path,
             filename=file.filename,
             custom_metadata=custom_metadata
-        )
-        logger.info(f"Document processed into {len(points)} chunks")
-
-        batch_size = 64
-        for i in range(0, len(points), batch_size):
-            logger.debug(f"Upserting batch {i // batch_size + 1}")
-            vector_client.upsert(
-                collection_name,
-                points[i : i + batch_size]
-            )
+        ):
+            batch.append(point)
+            all_points.append(point)
+            total_chunks += 1
+            
+            if len(batch) >= batch_size:
+                logger.debug(f"Upserting batch of {len(batch)} points")
+                vector_client.upsert(collection_name, batch)
+                batch = []
+        
+        if batch:
+            logger.debug(f"Upserting final batch of {len(batch)} points")
+            vector_client.upsert(collection_name, batch)
+        
+        logger.info(f"Document processed into {total_chunks} chunks")
 
         async with httpx.AsyncClient() as client:
             try:
@@ -230,7 +239,7 @@ async def upload_document(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
                         "filename": file.filename,
-                        "points": json.dumps([point.model_dump() for point in points]),
+                        "points": json.dumps([point.model_dump() for point in all_points]),
                     },
                 )
                 logger.info(
@@ -256,7 +265,7 @@ async def upload_document(
         return {
             "status": "ok",
             "filename": file.filename,
-            "chunks_indexed": len(points)
+            "chunks_indexed": total_chunks
         }
     except Exception as e:
         logger.error(f"Failed to upload document '{file.filename}': {e}")
@@ -434,20 +443,31 @@ async def replace_document(
 
     try:
         logger.debug(f"Processing document: {file.filename}")
-        points = document_processor.process_document(
+        
+        batch_size = 64
+        batch = []
+        total_chunks = 0
+        all_points = []
+        
+        for point in document_processor.process_document(
             file_path=tmp_path,
             filename=file.filename,
             custom_metadata=custom_metadata
-        )
-        logger.info(f"Document processed into {len(points)} chunks")
-
-        batch_size = 64
-        for i in range(0, len(points), batch_size):
-            logger.debug(f"Upserting batch {i // batch_size + 1}")
-            vector_client.upsert(
-                collection_name,
-                points[i : i + batch_size]
-            )
+        ):
+            batch.append(point)
+            all_points.append(point)
+            total_chunks += 1
+            
+            if len(batch) >= batch_size:
+                logger.debug(f"Upserting batch of {len(batch)} points")
+                vector_client.upsert(collection_name, batch)
+                batch = []
+        
+        if batch:
+            logger.debug(f"Upserting final batch of {len(batch)} points")
+            vector_client.upsert(collection_name, batch)
+        
+        logger.info(f"Document processed into {total_chunks} chunks")
 
         async with httpx.AsyncClient() as client:
             try:
@@ -455,7 +475,7 @@ async def replace_document(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
                         "filename": file.filename,
-                        "points": json.dumps([point.model_dump() for point in points]),
+                        "points": json.dumps([point.model_dump() for point in all_points]),
                     },
                 )
             except Exception as e:
@@ -473,7 +493,7 @@ async def replace_document(
             "status": "ok",
             "filename": file.filename,
             "chunks_replaced": existing_count,
-            "chunks_indexed": len(points)
+            "chunks_indexed": total_chunks
         }
 
     except Exception as e:
