@@ -21,6 +21,11 @@ from processor.document_processor import DocumentProcessor
 from config.vars import DATABASE_SERVICE_URL
 
 
+RESERVED_COLLECTION_NAMES = [
+    "conversations",
+]
+
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/embeddings", tags=["embedding"])
@@ -65,6 +70,13 @@ async def collection_exists(collection_name: str, request: Request):
 
 @router.post("/collections/{collection_name}")
 async def create_collection(collection_name: str, request: Request):
+    if collection_name in RESERVED_COLLECTION_NAMES:
+        logger.warning(f"Attempt to create collection with reserved name '{collection_name}'")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Collection name '{collection_name}' is reserved and cannot be used"
+        )
+
     logger.info(f"Create collection request for '{collection_name}'")
     embedding_service: EmbeddingService = (
         request.app.state.embedding_service

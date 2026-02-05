@@ -50,7 +50,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-import { createProfile, type Profile } from '@/services/profileService'
+import { createProfile } from '@/services/profileService'
+import type Profile from '@/model/profile'
+
+
+const PROFILE_IDS_NOT_ALLOWED = [
+  'conversations',
+]
 
 
 interface CreateProfileModalProps {
@@ -79,11 +85,16 @@ const validationError = computed(() => {
     return 'Use lowercase letters and numbers only.'
   }
 
+  if (PROFILE_IDS_NOT_ALLOWED.includes(profileName.value)) {
+    return 'This profile name is reserved.'
+  }
+
   return ''
 })
 
 const isValid = computed(() => {
-  return profileIdPattern.test(profileName.value)
+  return profileIdPattern.test(profileName.value) &&
+    !PROFILE_IDS_NOT_ALLOWED.includes(profileName.value)
 })
 
 const handleClose = () => {

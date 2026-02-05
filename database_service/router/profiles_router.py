@@ -20,11 +20,23 @@ router = APIRouter(
 )
 
 
+PROFILE_IDS_NOT_ALLOWED = [
+    "conversations",
+]
+
+
 @router.post("/profiles")
 def create_profile(
     profile: ProfileCreate,
     db: Session = Depends(get_db),
 ) -> ProfileResponse:
+    if profile.id in PROFILE_IDS_NOT_ALLOWED:
+        logger.warning(f"Attempt to create profile with reserved ID '{profile.id}'")
+        raise HTTPException(
+            status_code=400,
+            detail=f"Profile ID '{profile.id}' is reserved and cannot be used"
+        )
+
     if profiles_service.exists_profile_by_id(
         db=db,
         profile_id=profile.id,
