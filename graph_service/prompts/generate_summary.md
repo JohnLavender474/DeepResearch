@@ -33,6 +33,11 @@ should:
    them. Focus on the "so what"—the meaning and
    implications of the information.
 
+5. **Suggest next steps**: Provide 3 to 5 good
+   follow-up questions that would help deepen or
+   refine the research based on the synthesized
+   findings.
+
 ## Handling Task Failures
 
 For any tasks that encountered errors and could not
