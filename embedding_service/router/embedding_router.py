@@ -534,6 +534,71 @@ async def replace_document(
         os.unlink(tmp_path)
 
 
+@router.delete("/collections/{collection_name}/data")
+async def clear_collection(
+    collection_name: str,
+    request: Request
+):
+    logger.info(f"Clear collection request for '{collection_name}'")
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+
+    try:
+        if not vector_client.collection_exists(collection_name):
+            logger.error(f"Collection '{collection_name}' does not exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_name}' does not exist"
+            )
+
+        logger.info(f"Clearing all data from collection '{collection_name}'")
+        deleted_count = vector_client.clear_collection(collection_name)
+
+        async with httpx.AsyncClient() as client:
+            try:
+                await client.delete(
+                    f"{DATABASE_SERVICE_URL}/documents-embedded",
+                    params={"collection": collection_name},
+                )
+                logger.info(
+                    f"Cleared embedded documents for "
+                    f"collection '{collection_name}' in database service"
+                )
+            except httpx.HTTPStatusError as http_exc:
+                if http_exc.response.status_code == 404:
+                    logger.warning(
+                        f"No embedded documents found for "
+                        f"collection '{collection_name}' in database service"
+                    )
+                else:
+                    raise
+            except Exception as e:
+                logger.error(f"Failed to clear documents in database service: {e}")
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"Failed to clear documents in database service: {e}"
+                )
+
+        logger.info(
+            f"Successfully cleared {deleted_count} points "
+            f"from collection '{collection_name}'"
+        )
+        return {
+            "status": "ok",
+            "collection": collection_name,
+            "points_deleted": deleted_count
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to clear collection '{collection_name}': {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to clear collection: {e}"
+        )
+
+
 @router.post("/collections/{collection_name}/search")
 async def search(
     collection_name: str,

@@ -106,6 +106,31 @@ class QdrantVectorClient:
             raise
 
 
+    def clear_collection(self, collection_name: str) -> int:
+        logger.info(f"Clearing all points from collection '{collection_name}'")
+        try:
+            count_before = self.client.count(
+                collection_name=collection_name
+            ).count
+
+            if count_before > 0:
+                self.client.delete(
+                    collection_name=collection_name,
+                    points_selector=Filter(must=[])
+                )
+
+            logger.info(
+                f"Cleared {count_before} points from "
+                f"collection '{collection_name}'"
+            )
+            return count_before
+        except Exception as e:
+            logger.error(
+                f"Failed to clear collection '{collection_name}': {e}"
+            )
+            raise
+
+
     def search(
         self,
         collection_name: str,
