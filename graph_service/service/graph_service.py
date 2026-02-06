@@ -2,6 +2,8 @@ import uuid
 import json
 import asyncio
 import time
+import httpx
+import os
 
 from typing import Optional
 
@@ -9,6 +11,7 @@ from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
     AIMessage,
+    SystemMessage,
 )
 from langgraph.graph.state import CompiledStateGraph
 
@@ -19,6 +22,9 @@ from model.process_selection import ProcessSelectionOutput
 from utils.stop_signal_waiter import StopSignalWaiter
 from exception.invocation_stopped_exception import DeepResearchInvocationStoppedException
 from service import invocations_service
+from llm.claude_client import ClaudeClientWrapper
+from config import EMBEDDING_SERVICE_URL
+from utils.prompt_loader import load_prompt
 
 import logging
 
@@ -35,39 +41,25 @@ MAX_TIME_THRESHOLD_PER_NODE = 2500
 STOP_SIGNAL_POLL_INTERVAL = 5.0
 STOP_SIGNAL_TOTAL_WAIT_TIME = 2500
 
+CHAT_HISTORY_MAX_RECENT_MESSAGES = 4
+CHAT_HISTORY_MAX_RETRIEVED_CONTEXT_MESSAGES = 5
+CHAT_HISTORY_SEMANTIC_SEARCH_TOP_K = 8
 
-async def stream_graph(
-    input_data: GraphInput,
-):
-    invocation_id = str(uuid.uuid4())
 
-    logger.debug(f"Graph invocation id: {invocation_id}")
-
-    # The pending_task holds the currently executing
-    # graph node task. The stop_task holds the stop
-    # signal monitoring task.
-
-    pending_task: Optional[asyncio.Task] = None
-    stop_task: Optional[asyncio.Task] = None
-
-    try:
-        event_data = {
-            "invocation_id": invocation_id,
-            "event_type": "graph_start",
-        }
-        yield f"data: {json.dumps(event_data)}\n\n"
-
-        # Convert input messages to GraphState format
-        # Only consider the last 4 messages to avoid context overload
-
-        graph_state_messages: list[BaseMessage] = []
-        recent_messages = (
-            input_data.messages[-4:] 
-            if len(input_data.messages) > 4 
-            else input_data.messages
-        )
-
-        for message in recent_messages:
+async def _prepare_graph_messages(
+    all_messages: list,
+    user_query: str,
+    invocation_id: str,
+) -> list[BaseMessage]:
+    logger.debug(
+        f"Preparing graph messages for invocation {invocation_id} with "
+        f"{len(all_messages)} total messages"
+    )
+    
+    graph_state_messages: list[BaseMessage] = []
+    
+    if len(all_messages) <= CHAT_HISTORY_MAX_RECENT_MESSAGES:
+        for message in all_messages:
             if message.role == "human":
                 graph_state_messages.append(
                     HumanMessage(content=message.content)
@@ -77,7 +69,172 @@ async def stream_graph(
                     AIMessage(content=message.content)
                 )
             else:
-                raise Exception(f"Invalid message: {message}")
+                logger.warning(f"Encountered message with invalid role: {message}")
+                continue
+        
+        return graph_state_messages
+    
+    recent_messages = all_messages[-CHAT_HISTORY_MAX_RECENT_MESSAGES:]
+    older_messages = all_messages[:-CHAT_HISTORY_MAX_RECENT_MESSAGES]
+    
+    temp_collection_name = f"temp_invocation_{invocation_id}"
+    
+    logger.debug(
+        f"Creating temporary collection '{temp_collection_name}' "
+        f"for {len(older_messages)} older messages"
+    )
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.post(
+                f"{EMBEDDING_SERVICE_URL}/collections/{temp_collection_name}"
+            )
+            response.raise_for_status()
+            
+            logger.debug(f"Created temporary collection '{temp_collection_name}'")
+            
+            entries = [
+                {
+                    "text": f"[{msg.role.upper()}]: {msg.content}",
+                    "custom_metadata": {"role": msg.role, "index": idx}
+                }
+                for idx, msg in enumerate(older_messages)
+            ]
+            
+            insert_response = await client.post(
+                f"{EMBEDDING_SERVICE_URL}/collections/{temp_collection_name}/texts",
+                json={"entries": entries}
+            )
+            insert_response.raise_for_status()
+            
+            logger.debug(
+                f"Inserted {len(entries)} messages into "
+                f"temporary collection"
+            )
+            
+            search_response = await client.post(
+                f"{EMBEDDING_SERVICE_URL}/collections/{temp_collection_name}/search",
+                json={
+                    "query": user_query,
+                    "top_k": CHAT_HISTORY_SEMANTIC_SEARCH_TOP_K
+                }
+            )
+            search_response.raise_for_status()
+            search_results = search_response.json()
+            
+            logger.debug(
+                f"Search returned {len(search_results.get('results', []))} results"
+            )
+            
+            if search_results.get("results"):
+                relevant_messages = (
+                    search_results["results"][:CHAT_HISTORY_MAX_RETRIEVED_CONTEXT_MESSAGES]
+                )
+                
+                context_texts = [
+                    result["metadata"]["text"]
+                    for result in relevant_messages
+                ]
+
+                prompt_template = load_prompt("chat_history_summarization.md")                
+                
+                context_texts_formatted = "\n".join(
+                    f"{i+1}. {text}" 
+                    for i, text in enumerate(context_texts)
+                )
+                
+                llm_client = ClaudeClientWrapper()
+                summarization_prompt = prompt_template.format(
+                    user_query=user_query,
+                    context_texts=context_texts_formatted
+                )
+                
+                logger.debug("Generating context summary with LLM")
+                
+                summary_response = await llm_client.ainvoke(
+                    input=[SystemMessage(content=summarization_prompt)]
+                )
+                
+                summary_content = summary_response.content
+                
+                logger.debug(f"Generated context summary: {summary_content[:100]}...")
+                
+                graph_state_messages.append(
+                    HumanMessage(
+                        content=(
+                            "[CONVERSATION CONTEXT - Previous relevant discussion]\n\n"
+                            f"{summary_content}"
+                        )
+                    )
+                )                 
+            
+            logger.debug(
+                f"Deleted temporary collection '{temp_collection_name}'"
+            )                        
+            
+    except Exception as e:
+        logger.error(
+            f"Failed to process semantic search for chat history: {e}"
+        )
+
+    finally:        
+        if temp_collection_name:
+            try:
+                async with httpx.AsyncClient(timeout=10.0) as client:
+                    await client.delete(
+                        f"{EMBEDDING_SERVICE_URL}/collections/{temp_collection_name}"
+                    )
+                    logger.debug(
+                        f"Cleaned up temporary collection '{temp_collection_name}' "
+                        f"after error"
+                    )
+            except Exception as cleanup_error:
+                logger.warning(
+                    f"Failed to cleanup temporary collection: {cleanup_error}"
+                )
+    
+    for message in recent_messages:
+        if message.role == "human":
+            graph_state_messages.append(
+                HumanMessage(content=message.content)
+            )
+        elif message.role == "ai":
+            graph_state_messages.append(
+                AIMessage(content=message.content)
+            )
+        else:
+            raise Exception(f"Invalid message: {message}")
+    
+    return graph_state_messages
+
+
+async def stream_graph(
+    input_data: GraphInput,
+):
+    invocation_id = str(uuid.uuid4())
+
+    logger.debug(f"Graph invocation id: {invocation_id}")
+
+    # The pending_task holds the currently executing graph node task. 
+    # The stop_task holds the stop signal monitoring task.
+
+    pending_task: Optional[asyncio.Task] = None
+    stop_task: Optional[asyncio.Task] = None    
+
+    try:
+        event_data = {
+            "invocation_id": invocation_id,
+            "event_type": "graph_start",
+        }
+        yield f"data: {json.dumps(event_data)}\n\n"
+
+        # Prepare graph messages to be included in the graph invocation
+
+        graph_state_messages = await _prepare_graph_messages(
+            all_messages=input_data.messages,
+            user_query=input_data.user_query,
+            invocation_id=invocation_id,
+        )
             
         # Build initial GraphState
 
@@ -389,6 +546,8 @@ async def stream_graph(
             raise
 
     finally:
+        # Delete deleting any pending stop request for this invocation
+
         try:
             deleted_stop_req = await invocations_service.delete_stop_request(
                 invocation_id=invocation_id,
@@ -405,7 +564,9 @@ async def stream_graph(
         except Exception as e:
             logger.debug(
                 f"No stop request was deleted for invocation {invocation_id}: {str(e)}"
-            )
+            )        
+
+        # Cancel any pending tasks to ensure there are no lingering background processes
 
         try:
             if pending_task and not pending_task.done():            
