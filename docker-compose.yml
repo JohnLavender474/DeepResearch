@@ -1,5 +1,8 @@
+name: deepresearch
+
 services:
   postgres:
+    container_name: postgres
     image: postgres:16
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-root}
@@ -20,6 +23,7 @@ services:
   # No health check is provided by default for Qdrant, so we skip it here
   # It reports as being unhealthy even when it is running fine.
   qdrant:
+    container_name: qdrant
     image: qdrant/qdrant:latest
     ports:
       - "6333:6333"
@@ -29,6 +33,7 @@ services:
       - deepresearch_network
 
   minio:
+    container_name: minio
     image: minio/minio:latest
     command: server /data --console-address ":9001"
     environment:
@@ -48,6 +53,7 @@ services:
       - deepresearch_network
 
   database_service:
+    container_name: database_service
     build:
       context: ./database_service
       dockerfile: Dockerfile
@@ -74,6 +80,7 @@ services:
       - deepresearch_network
 
   embedding_service:
+    container_name: embedding_service
     build:
       context: ./embedding_service
       dockerfile: Dockerfile
@@ -111,6 +118,7 @@ services:
       - deepresearch_network
 
   storage_service:
+    container_name: storage_service
     build:
       context: ./storage_service
       dockerfile: Dockerfile
@@ -151,6 +159,7 @@ services:
       - deepresearch_network
 
   graph_service:
+    container_name: graph_service
     build:
       context: ./graph_service
       dockerfile: Dockerfile
@@ -177,6 +186,7 @@ services:
       - deepresearch_network
 
   frontend_service:
+    container_name: frontend_service
     build:
       context: ./frontend_service
       dockerfile: Dockerfile
@@ -186,7 +196,7 @@ services:
       - "8004:5173"
     volumes:
       - ./frontend_service:/app
-      - /app/node_modules
+      - frontend_node_modules:/app/node_modules
     depends_on:
       database_service:
         condition: service_healthy
@@ -208,3 +218,4 @@ volumes:
   qdrant_storage:
   minio_data:
   blob_storage:
+  frontend_node_modules:
