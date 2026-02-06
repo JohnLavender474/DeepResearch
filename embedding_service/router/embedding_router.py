@@ -3,6 +3,7 @@ import os
 import logging
 import json
 import httpx
+import uuid
 
 from typing import Any, Optional
 from fastapi import (
@@ -13,8 +14,10 @@ from fastapi import (
     File,
     Form,
 )
+from qdrant_client.models import PointStruct
 
 from model.search_query import SearchQuery
+from model.text_chunk_insert import TextChunkInsert
 from client.qdrant_vector_client import QdrantVectorClient
 from service.embedding_service import EmbeddingService
 from processor.document_processor import DocumentProcessor
@@ -27,7 +30,6 @@ MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 RESERVED_COLLECTION_NAMES = [
     "conversations",
 ]
-
 
 
 logger = logging.getLogger(__name__)
@@ -68,6 +70,37 @@ async def collection_exists(collection_name: str, request: Request):
         raise HTTPException(
             status_code=500,
             detail=f"Failed to check collection existence: {e}"
+        )
+
+
+@router.delete("/collections/{collection_name}")
+async def delete_collection(collection_name: str, request: Request):
+    logger.info(f"Delete collection request for '{collection_name}'")
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+
+    try:
+        if not vector_client.collection_exists(collection_name):
+            logger.warning(f"Collection '{collection_name}' does not exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_name}' does not exist"
+            )
+
+        vector_client.delete_collection(collection_name)
+        logger.info(f"Collection '{collection_name}' deleted successfully")
+        return {
+            "status": "ok",
+            "collection": collection_name,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to delete collection: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to delete collection: {e}"
         )
 
 
@@ -639,6 +672,73 @@ async def search(
         raise HTTPException(
             status_code=500,
             detail=f"Search failed: {e}"
+        )
+
+
+@router.post("/collections/{collection_name}/texts")
+async def insert_texts(
+    collection_name: str,
+    data: TextChunkInsert,
+    request: Request
+):
+    logger.info(
+        f"Insert texts request for collection '{collection_name}', "
+        f"{len(data.entries)} texts"
+    )
+    embedding_service: EmbeddingService = (
+        request.app.state.embedding_service
+    )
+    vector_client: QdrantVectorClient = (
+        request.app.state.vector_client
+    )
+
+    try:
+        if not vector_client.collection_exists(collection_name):
+            logger.error(f"Collection '{collection_name}' does not exist")
+            raise HTTPException(
+                status_code=404,
+                detail=f"Collection '{collection_name}' does not exist"
+            )
+
+        logger.debug(f"Encoding {len(data.entries)} texts")
+        points = []
+        
+        for entry in data.entries:
+            vector = embedding_service.get_encoding(entry.text)
+            payload = {"text": entry.text}
+            
+            if entry.custom_metadata:
+                payload.update(entry.custom_metadata)
+            
+            point = PointStruct(
+                id=str(uuid.uuid4()),
+                vector=vector,
+                payload=payload
+            )
+            points.append(point)
+
+        logger.debug(f"Upserting {len(points)} points")
+        vector_client.upsert(
+            collection_name=collection_name,
+            points=points
+        )
+
+        logger.info(
+            f"Successfully inserted {len(points)} texts into "
+            f"collection '{collection_name}'"
+        )
+        return {
+            "status": "ok",
+            "collection": collection_name,
+            "texts_inserted": len(points)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to insert texts: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to insert texts: {e}"
         )
 
 
