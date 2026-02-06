@@ -104,15 +104,18 @@ const oversizedFile = ref<File | null>(null)
 const { addToast } = useToasts()
 
 const loadUploadedFiles = async (profileId: string) => {
+    console.debug('Loading documents for profile:', profileId)
+
     if (!profileId) {
         uploadedFiles.value = []
         loadingDocuments.value = false
-        return
+        throw new Error('Profile ID is required to load documents')
     }
 
     loadingDocuments.value = true
-    errorMessage.value = ''
     uploadedFiles.value = []
+    
+    errorMessage.value = ''    
 
     try {
         await fetchFilesForProfile(profileId, (batchFiles: FileInfo[]) => {

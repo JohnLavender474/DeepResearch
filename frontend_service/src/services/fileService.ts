@@ -22,6 +22,8 @@ export async function fetchFilesForProfile(
   profileId: string,
   onBatchLoaded?: (files: FileInfo[]) => void
 ): Promise<FileInfo[]> {
+  console.debug('Fetching files for profile:', profileId);
+
   if (!profileId) {
     throw new Error('No profile selected');
   }
@@ -50,12 +52,19 @@ export async function fetchFilesForProfile(
       })
     );
 
-    await fetchEmbeddingsInParallel(documents, onBatchLoaded);
+    console.debug(`Fetched ${documents.length} stored documents.`);
+
+    if (documents.length > 0) {
+      console.debug('Fetching embeddings for documents...');
+      await fetchEmbeddingsInParallel(documents, onBatchLoaded);
+      console.debug('Completed fetching embeddings for all documents');
+    }
 
     return documents;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch documents';
+    console.error(errorMessage);
     throw new Error(errorMessage);
   }
 }
@@ -80,7 +89,7 @@ async function fetchEmbeddingsInParallel(
     if (onBatchLoaded) {
       onBatchLoaded(batch);
     }
-  }
+  }  
 }
 
 
