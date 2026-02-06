@@ -8,6 +8,10 @@ export async function fetchInvocation(
   profileId: string,
   invocationId: string
 ): Promise<Invocation> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/${profileId}/invocations/${invocationId}`
   )

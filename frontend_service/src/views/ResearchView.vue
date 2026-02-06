@@ -1,101 +1,128 @@
 <template>
   <div class="research-container">
-    <div class="mobile-controls">
-      <button
-        class="sidebar-toggle"
-        @click="toggleLeftSidebar"
-        :class="{ active: isLeftSidebarOpen }"
-      >
-        <span class="toggle-icon">☰</span>
-        <span class="toggle-text">Chats</span>
-      </button>
-      <button
-        class="sidebar-toggle"
-        @click="toggleRightSidebar"
-        :class="{ active: isRightSidebarOpen }"
-      >
-        <span class="toggle-text">Files</span>
-        <span class="toggle-icon">📁</span>
-      </button>
+    <div v-if="loading" class="full-loader">
+      <div class="spinner"></div>
     </div>
 
-    <div
-      v-if="isLeftSidebarOpen || isRightSidebarOpen"
-      class="sidebar-backdrop"
-      @click="closeSidebars"
-    ></div>
-
-    <div class="content-area">
-      <aside
-        class="sidebar"
-        :class="{ 'sidebar-open': isLeftSidebarOpen }"
-      >
-        <button
-          class="sidebar-close"
-          @click="closeLeftSidebar"
-        >
-          ✕
-        </button>
-        <div v-if="loading && !selectedProfileId" class="loader">
-          <div class="spinner"></div>
-        </div>
-        <div v-else class="component-wrapper">
+    <template v-else-if="!selectedProfileId">
+      <div class="no-profile-state">
+        <div class="no-profile-content">
+          <h2>No Profile Selected</h2>
+          <p>
+            Create a new profile to get started with
+            research, chat, and document uploads.
+          </p>
           <AddProfileButton
             :disabled="profilesLoading"
             @profile-created="onProfileCreated"
           />
-
           <ProfileSelector
+            v-if="profiles.length > 0"
             :profiles="profiles"
             :loading="profilesLoading"
             :disabled="profilesLoading"
             :model-value="selectedProfileId"
             @profile-changed="onProfileChanged"
           />
-
-          <ChatHistory            
-            :profile-id="selectedProfileId"
-            :conversations="conversations"
-            :loading="isLoadingConversations"
-            :selected-conversation-id="currentConversationId"
-            @conversation-selected="onConversationSelected"
-            @new-conversation="onNewConversation"
-          />
         </div>
-      </aside>
+      </div>
+    </template>
 
-      <main class="main-section">
-        <ChatSection
-          ref="chatSectionRef"
-          :messages="messages"
-          :is-processing="isProcessing"
-          :is-loading-conversation="isLoadingConversation"
-          :error="error"
-          :profile-id="selectedProfileId"
-          @submit="onMessageSubmitted"
-          @conversation-created="onConversationCreated"
-        />
-      </main>
-
-      <aside
-        class="sidebar-right"
-        :class="{ 'sidebar-open': isRightSidebarOpen }"
-      >
+    <template v-else>
+      <div class="mobile-controls">
         <button
-          class="sidebar-close"
-          @click="closeRightSidebar"
+          class="sidebar-toggle"
+          @click="toggleLeftSidebar"
+          :class="{ active: isLeftSidebarOpen }"
         >
-          ✕
+          <span class="toggle-icon">☰</span>
+          <span class="toggle-text">Chats</span>
         </button>
-        <div class="component-wrapper">
-          <FileManagement
+        <button
+          class="sidebar-toggle"
+          @click="toggleRightSidebar"
+          :class="{ active: isRightSidebarOpen }"
+        >
+          <span class="toggle-text">Files</span>
+          <span class="toggle-icon">📁</span>
+        </button>
+      </div>
+
+      <div
+        v-if="isLeftSidebarOpen || isRightSidebarOpen"
+        class="sidebar-backdrop"
+        @click="closeSidebars"
+      ></div>
+
+      <div class="content-area">
+        <aside
+          class="sidebar"
+          :class="{ 'sidebar-open': isLeftSidebarOpen }"
+        >
+          <button
+            class="sidebar-close"
+            @click="closeLeftSidebar"
+          >
+            ✕
+          </button>
+          <div class="component-wrapper">
+            <AddProfileButton
+              :disabled="profilesLoading"
+              @profile-created="onProfileCreated"
+            />
+
+            <ProfileSelector
+              :profiles="profiles"
+              :loading="profilesLoading"
+              :disabled="profilesLoading"
+              :model-value="selectedProfileId"
+              @profile-changed="onProfileChanged"
+            />
+
+            <ChatHistory
+              :profile-id="selectedProfileId"
+              :conversations="conversations"
+              :loading="isLoadingConversations"
+              :selected-conversation-id="currentConversationId"
+              @conversation-selected="onConversationSelected"
+              @new-conversation="onNewConversation"
+            />
+          </div>
+        </aside>
+
+        <main class="main-section">
+          <ChatSection
+            ref="chatSectionRef"
+            :messages="messages"
+            :is-processing="isProcessing"
+            :is-loading-conversation="isLoadingConversation"
+            :error="error"
             :profile-id="selectedProfileId"
-            @file-uploaded="onFileUploaded"
-            @file-deleted="onFileDeleted"
+            @submit="onMessageSubmitted"
+            @conversation-created="onConversationCreated"
           />
-        </div>
-      </aside>
-    </div>
+        </main>
+
+        <aside
+          class="sidebar-right"
+          :class="{ 'sidebar-open': isRightSidebarOpen }"
+        >
+          <button
+            class="sidebar-close"
+            @click="closeRightSidebar"
+          >
+            ✕
+          </button>
+          <div class="component-wrapper">
+            <FileManagement
+              :profile-id="selectedProfileId"
+              @file-uploaded="onFileUploaded"
+              @file-deleted="onFileDeleted"
+            />
+          </div>
+        </aside>
+      </div>
+    </template>
   </div>
 </template>
 
@@ -303,6 +330,43 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   width: 100%;
   padding: 1.5rem 1.5rem 0 1.5rem;
   background-color: var(--color-bg-1);
+}
+
+.full-loader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.no-profile-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+}
+
+.no-profile-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;  
+  width: 100%;
+  text-align: center;
+  padding: 2rem;
+}
+
+.no-profile-content h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  color: var(--color-text-primary);
+}
+
+.no-profile-content p {
+  margin: 0;
+  font-size: 0.95rem;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
 }
 
 .mobile-controls {

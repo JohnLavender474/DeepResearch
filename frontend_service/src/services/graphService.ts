@@ -15,6 +15,10 @@ export interface GraphInput {
 export async function* streamGraphExecution(
   input: GraphInput
 ): AsyncGenerator<string, void, unknown> {
+  if (!input.profile_id) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch('/api/graph/execute', {
     method: 'POST',
     headers: {

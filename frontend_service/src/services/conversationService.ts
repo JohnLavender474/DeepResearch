@@ -7,6 +7,10 @@ const API_BASE_URL = '/api/database'
 export async function fetchConversationsForProfile(
     profileId: string
 ): Promise<Conversation[]> {
+    if (!profileId) {
+        throw new Error('No profile selected');
+    }
+
     const response = await fetch(
         `${API_BASE_URL}/${profileId}/conversations`
     )
@@ -25,6 +29,10 @@ export async function fetchConversation(
     conversationId: string,
     profileId: string
 ): Promise<Conversation | null> {
+    if (!profileId) {
+        throw new Error('No profile selected');
+    }
+
     const response = await fetch(
         `${API_BASE_URL}/${profileId}/conversations/${conversationId}/with-turns`
     )
@@ -47,6 +55,10 @@ export async function createConversation(
     profileId: string,
     title: string
 ): Promise<Conversation> {
+    if (!profileId) {
+        throw new Error('No profile selected');
+    }
+
     const response = await fetch(
         `${API_BASE_URL}/${profileId}/conversations`,
         {

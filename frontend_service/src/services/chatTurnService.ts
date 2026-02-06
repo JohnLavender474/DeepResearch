@@ -11,6 +11,10 @@ export async function createChatTurn(
   data: Record<string, any>,
   timestamp: string
 ): Promise<ChatTurn> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/${profileId}/conversations/${conversationId}/chat-turns`,
     {
@@ -39,6 +43,10 @@ export async function updateChatTurn(
   chatTurnId: string,
   data: Record<string, any>
 ): Promise<ChatTurn> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch(
     `${API_BASE_URL}/${profileId}/chat-turns/${chatTurnId}`,
     {

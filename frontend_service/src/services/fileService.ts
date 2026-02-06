@@ -9,6 +9,10 @@ export async function uploadFile(
   profileId: string,
   file: File
 ): Promise<void> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   await uploadToStorage(profileId, file);
   await embedDocument(profileId, file);
 }
@@ -18,6 +22,10 @@ export async function fetchFilesForProfile(
   profileId: string,
   onBatchLoaded?: (files: FileInfo[]) => void
 ): Promise<FileInfo[]> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   try {
     const storedResponse = await fetch(
       `/api/database/${profileId}/documents-stored`,
@@ -151,6 +159,10 @@ export async function downloadFile(
   profileId: string,
   filename: string
 ): Promise<void> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch(
     `/api/storage/collections/${profileId}/blobs/${encodeURIComponent(
       filename
@@ -213,6 +225,10 @@ export async function deleteFile(
   profileId: string,
   filename: string
 ): Promise<void> {
+  if (!profileId) {
+    throw new Error('No profile selected');
+  }
+
   const response = await fetch(
     `/api/storage/collections/${profileId}/blobs/${encodeURIComponent(
       filename

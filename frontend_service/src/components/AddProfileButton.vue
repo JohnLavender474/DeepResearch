@@ -61,7 +61,6 @@ const onProfileCreated = (profile: Profile) => {
   color: var(--color-text-primary);
   font-size: 0.85rem;
   cursor: pointer;
-  width: 75%;
   font-weight: 500;  
   transition: all var(--transition-base);
 }
