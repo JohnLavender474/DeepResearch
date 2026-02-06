@@ -15,6 +15,7 @@ from langgraph.graph.state import CompiledStateGraph
 from graph import build_graph
 from model.graph_input import GraphInput
 from model.graph_state import GraphState
+from model.process_selection import ProcessSelectionOutput
 from utils.stop_signal_waiter import StopSignalWaiter
 from exception.invocation_stopped_exception import DeepResearchInvocationStoppedException
 from service import invocations_service
@@ -85,6 +86,12 @@ async def stream_graph(
             profile_id=input_data.profile_id,
             messages=graph_state_messages,
         )
+
+        if input_data.process_override:
+            graph_state.process_selection = ProcessSelectionOutput(
+                process_type=input_data.process_override,
+                reasoning="User-selected process override",
+            )
 
         # Create invocation record in database
 

@@ -9,6 +9,20 @@ export interface GraphInput {
   profile_id: string
   messages?: SimpleMessage[]
   custom_start_node?: string
+  process_override?: string
+}
+
+
+export async function fetchProcessTypes(): Promise<string[]> {
+  const response = await fetch('/api/graph/process-types')
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch process types: ${response.statusText}`
+    )
+  }
+
+  return response.json()
 }
 
 

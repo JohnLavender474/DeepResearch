@@ -38,12 +38,29 @@
         @keydown.meta.enter="onSubmit"        
       ></textarea>
 
-      <button
-        type="submit"
-        :disabled="disabled || !isValidInput"
-      >
-        {{ submitButtonText }}
-      </button>
+      <div class="submit-row">
+        <select
+          v-model="selectedProcessType"
+          :disabled="disabled"
+          class="process-select"
+        >
+          <option value="">Auto</option>
+          <option
+            v-for="pt in processTypes"
+            :key="pt"
+            :value="pt"
+          >
+            {{ formatProcessType(pt) }}
+          </option>
+        </select>
+
+        <button
+          type="submit"
+          :disabled="disabled || !isValidInput"
+        >
+          {{ submitButtonText }}
+        </button>
+      </div>
     </form>
   </div>
 </template>
@@ -55,22 +72,27 @@ import { ref, computed } from 'vue'
 interface UserInputProps {
   disabled?: boolean
   loading?: boolean
+  processTypes?: string[]
 }
 
 const props = withDefaults(defineProps<UserInputProps>(), {
   disabled: false,
   loading: false,
+  processTypes: () => [],
 })
 
 const emit = defineEmits<{
-  (e: 'submit', query: string): void
+  (e: 'submit', query: string, processOverride: string): void
 }>()
 
 const query = ref('')
+const selectedProcessType = ref('')
 const isCollapsed = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
-const isValidInput = computed(() => query.value.trim().length > 0)
+const isValidInput = computed(
+  () => query.value.trim().length > 0
+)
 
 const submitButtonText = computed(() => {
   if (!query.value.trim()) {
@@ -85,13 +107,20 @@ const submitButtonText = computed(() => {
   return 'Submit Query'
 })
 
+const formatProcessType = (pt: string): string => {
+  return pt
+    .split('_')
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
 const onSubmit = () => {
   if (
     query.value.trim() &&
     !props.disabled &&
     !props.loading
   ) {
-    emit('submit', query.value)
+    emit('submit', query.value, selectedProcessType.value)
     query.value = ''
   }
 }
@@ -105,9 +134,14 @@ const clear = () => {
   query.value = ''
 }
 
+const resetProcessType = () => {
+  selectedProcessType.value = ''
+}
+
 defineExpose({
   focus,
   clear,
+  resetProcessType,
 })
 </script>
 
@@ -155,6 +189,36 @@ defineExpose({
   gap: 1rem;
 }
 
+.submit-row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+.process-select {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--size-border-radius-sm);
+  background-color: var(--color-bg-3);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: border-color var(--transition-base);
+  min-width: 160px;
+}
+
+.process-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.process-select:disabled {
+  background-color: var(--color-surface-hover);
+  color: var(--color-text-tertiary);
+  cursor: not-allowed;
+}
+
 textarea {
   padding: 1rem;
   font-size: 1rem;
@@ -179,7 +243,8 @@ textarea:disabled {
   cursor: not-allowed;
 }
 
-button {
+button[type="submit"] {
+  flex: 1;
   padding: 0.75rem 1.5rem;
   font-size: 1rem;
   background-color: var(--color-primary);
@@ -191,11 +256,11 @@ button {
   font-weight: 500;
 }
 
-button:hover:not(:disabled) {
+button[type="submit"]:hover:not(:disabled) {
   background-color: var(--color-primary-dark);
 }
 
-button:disabled {
+button[type="submit"]:disabled {
   background-color: var(--color-border);
   cursor: not-allowed;
 }

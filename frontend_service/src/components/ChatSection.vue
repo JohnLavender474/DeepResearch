@@ -15,6 +15,7 @@
       ref="userInputRef"
       :disabled="props.isProcessing"
       :loading="props.isLoadingConversation"
+      :process-types="props.processTypes"
       @submit="onSubmit"
     />
 
@@ -39,12 +40,13 @@ interface ChatSectionProps {
   isLoadingConversation: boolean
   error: string
   profileId: string
+  processTypes: string[]
 }
 
 const props = defineProps<ChatSectionProps>()
 
 const emit = defineEmits<{
-  (e: 'submit', query: string): void
+  (e: 'submit', query: string, processOverride: string): void
   (e: 'conversation-created', conversationId: string): void
 }>()
 
@@ -60,16 +62,24 @@ watch(
   }
 )
 
-const onSubmit = async (query: string) => {
-  emit('submit', query)
+const onSubmit = async (
+  query: string,
+  processOverride: string,
+) => {
+  emit('submit', query, processOverride)
 }
 
 const focusInput = () => {
   userInputRef.value?.focus()
 }
 
+const resetProcessSelection = () => {
+  userInputRef.value?.resetProcessType()
+}
+
 defineExpose({
   focusInput,
+  resetProcessSelection,
 })
 </script>
 

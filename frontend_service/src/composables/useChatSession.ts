@@ -272,7 +272,11 @@ export function useChatSession() {
     }
   };
 
-  const submitMessage = async (query: string, profileId: string) => {
+  const submitMessage = async (
+    query: string,
+    profileId: string,
+    processOverride?: string,
+  ) => {
     if (!query.trim()) {
       console.warn("Empty message submitted");
       error.value = "Please enter a message";
@@ -392,13 +396,17 @@ export function useChatSession() {
         user_query: query,
         profile_id: profileId,
         messages: chatHistory,
+        process_override: processOverride || undefined,
       });
 
       let invocationIdSet = false;
       let currentInvocationId: string | null = null;
+      
       let currentSteps: GraphStep[] = [];
+
       let finalStatus: AIMessageContent['status'] = 'running';
       let finalResult: string | undefined;
+
       let errorMessage: string | undefined;
 
       for await (const chunk of stream) {

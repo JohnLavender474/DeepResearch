@@ -6,6 +6,7 @@ from fastapi.responses import StreamingResponse
 import httpx
 
 from model.graph_input import GraphInput
+from model.process_selection import PROCESS_TYPES
 from service.graph_streamer import (
     consume_graph_to_queue,
     stream_from_queue,
@@ -18,6 +19,11 @@ import logging
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/graph", tags=["graph"])
+
+
+@router.get("/process-types")
+async def get_process_types() -> list[str]:
+    return PROCESS_TYPES
 
 
 @router.post("/execute")

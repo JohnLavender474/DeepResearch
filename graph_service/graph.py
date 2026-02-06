@@ -52,10 +52,21 @@ async def node_process_selection(state: GraphState) -> GraphState:
         messages=state.messages,
     )
 
-    output = await select_process(input_data)
-    logger.debug(f"Process type selected: {output.process_type}")
+    if state.process_selection and state.process_selection.process_type:
+        logger.debug(
+            f"Process type already selected: "
+            f"{state.process_selection.process_type}"
+        )
 
-    state.process_selection = output
+        output = state.process_selection
+    else:
+        output = await select_process(input_data)
+        logger.debug(
+            f"Process type selected: {output.process_type}"
+        )
+
+        state.process_selection = output
+
     state.steps.append(
         GraphStep(
             type="process_selection",

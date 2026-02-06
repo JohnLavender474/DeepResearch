@@ -98,6 +98,7 @@
             :is-loading-conversation="isLoadingConversation"
             :error="error"
             :profile-id="selectedProfileId"
+            :process-types="processTypes"
             @submit="onMessageSubmitted"
             @conversation-created="onConversationCreated"
           />
@@ -134,6 +135,7 @@ import ChatHistory from '@/components/ChatHistory.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles } from '@/services/profileService'
+import { fetchProcessTypes } from '@/services/graphService'
 import ProfileSelector from '@/components/ProfileSelector.vue'
 import type Profile from '@/model/profile'
 import { useLocalStorage } from '@/composables/useLocalStorage'
@@ -148,6 +150,8 @@ const profiles = ref<Profile[]>([])
 const profilesLoading = ref(false)
 
 const selectedProfileId = ref('')
+
+const processTypes = ref<string[]>([])
 
 const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
 
@@ -251,6 +255,10 @@ const onConversationSelected = (conversationId: string) => {
     )
 
     closeLeftSidebar()
+
+    if (chatSectionRef.value) {
+      chatSectionRef.value.resetProcessSelection()
+    }
   }
 }
 
@@ -272,6 +280,7 @@ const onNewConversation = () => {
 
   if (chatSectionRef.value) {
     chatSectionRef.value.focusInput()
+    chatSectionRef.value.resetProcessSelection()
   }
 }
 
@@ -283,19 +292,32 @@ const onFileDeleted = (filename: string) => {
   console.log(`File deleted: ${filename}`)
 }
 
-const onMessageSubmitted = async (query: string) => {
+const onMessageSubmitted = async (
+  query: string,
+  processOverride: string,
+) => {
   if (!selectedProfileId.value) {
     console.error('No profile selected')    
     return
   }
 
-  await submitMessage(query, selectedProfileId.value)
+  await submitMessage(
+    query,
+    selectedProfileId.value,
+    processOverride || undefined,
+  )
 }
 
 onMounted(async () => {
   loading.value = true
 
   await loadProfiles(null)
+
+  try {
+    processTypes.value = await fetchProcessTypes()
+  } catch (err) {
+    console.error('Failed to fetch process types:', err)
+  }
 
   loading.value = false
 })
