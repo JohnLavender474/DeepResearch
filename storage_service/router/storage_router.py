@@ -13,7 +13,10 @@ from fastapi import (
 from fastapi.responses import Response
 
 from service.blob_storage import BlobStorage
-from config.vars import DATABASE_SERVICE_URL
+from config.vars import DATABASE_SERVICE_URL, MAX_UPLOAD_SIZE_MB
+
+
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
 logger = logging.getLogger(__name__)
@@ -81,9 +84,22 @@ async def upload_blob(
             delete=False,
             suffix=os.path.splitext(file.filename)[1]
         ) as temp_file:
-            content = await file.read()
-            temp_file.write(content)
             temp_file_path = temp_file.name
+            total_size = 0
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                total_size += len(chunk)
+                if total_size > MAX_UPLOAD_SIZE_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=(
+                            f"File exceeds maximum upload size "
+                            f"of {MAX_UPLOAD_SIZE_MB}MB"
+                        )
+                    )
+                temp_file.write(chunk)
 
         stored_path = blob_storage.store_blob(
             collection_name=collection_name,

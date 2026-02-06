@@ -82,6 +82,7 @@ services:
       QDRANT_URL: http://qdrant:6333
       SENTENCE_TRANSFORMER_MODEL: ${SENTENCE_TRANSFORMER_MODEL}
       DATABASE_SERVICE_URL: http://database_service:8003/api/database
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-50}
     ports:
       - "8000:8000"
     volumes:
@@ -94,6 +95,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - deepresearch_network
 
@@ -106,6 +119,7 @@ services:
       BLOB_STORAGE_PATH: /app/blob_storage
       DATABASE_SERVICE_URL: http://database_service:8003/api/database
       EMBEDDING_SERVICE_URL: http://embedding_service:8000/api/embeddings
+      MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-50}
     ports:
       - "8002:8002"
     volumes:
@@ -121,6 +135,18 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+        reservations:
+          memory: 512M
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
     networks:
       - deepresearch_network
 

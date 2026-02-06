@@ -19,3 +19,10 @@ DATABASE_SERVICE_URL = _get_optional_env_var(
     var_name="DATABASE_SERVICE_URL",
     default_value="http://localhost:8003/api/database"
 )
+
+MAX_UPLOAD_SIZE_MB = int(
+    _get_optional_env_var(
+        var_name="MAX_UPLOAD_SIZE_MB",
+        default_value="50"
+    )
+)

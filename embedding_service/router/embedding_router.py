@@ -18,7 +18,10 @@ from model.search_query import SearchQuery
 from client.qdrant_vector_client import QdrantVectorClient
 from service.embedding_service import EmbeddingService
 from processor.document_processor import DocumentProcessor
-from config.vars import DATABASE_SERVICE_URL
+from config.vars import DATABASE_SERVICE_URL, MAX_UPLOAD_SIZE_MB
+
+
+MAX_UPLOAD_SIZE_BYTES = MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
 
 RESERVED_COLLECTION_NAMES = [
@@ -201,9 +204,23 @@ async def upload_document(
         delete=False,
         suffix=os.path.splitext(file.filename)[1]
     ) as tmp_file:
-        content = await file.read()
-        tmp_file.write(content)
         tmp_path = tmp_file.name
+        total_size = 0
+        while True:
+            file_chunk = await file.read(1024 * 1024)
+            if not file_chunk:
+                break
+            total_size += len(file_chunk)
+            if total_size > MAX_UPLOAD_SIZE_BYTES:
+                os.unlink(tmp_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        f"File exceeds maximum upload size "
+                        f"of {MAX_UPLOAD_SIZE_MB}MB"
+                    )
+                )
+            tmp_file.write(file_chunk)
 
     try:
         logger.debug(f"Processing document: {file.filename}")
@@ -211,7 +228,7 @@ async def upload_document(
         batch_size = 64
         batch = []
         total_chunks = 0
-        all_points = []
+        all_points_serialized = []
         
         for point in document_processor.process_document(
             file_path=tmp_path,
@@ -219,7 +236,7 @@ async def upload_document(
             custom_metadata=custom_metadata
         ):
             batch.append(point)
-            all_points.append(point)
+            all_points_serialized.append(point.model_dump())
             total_chunks += 1
             
             if len(batch) >= batch_size:
@@ -239,7 +256,7 @@ async def upload_document(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
                         "filename": file.filename,
-                        "points": json.dumps([point.model_dump() for point in all_points]),
+                        "points": json.dumps(all_points_serialized),
                     },
                 )
                 logger.info(
@@ -437,9 +454,23 @@ async def replace_document(
         delete=False,
         suffix=os.path.splitext(file.filename)[1]
     ) as tmp_file:
-        content = await file.read()
-        tmp_file.write(content)
         tmp_path = tmp_file.name
+        total_size = 0
+        while True:
+            file_chunk = await file.read(1024 * 1024)
+            if not file_chunk:
+                break
+            total_size += len(file_chunk)
+            if total_size > MAX_UPLOAD_SIZE_BYTES:
+                os.unlink(tmp_path)
+                raise HTTPException(
+                    status_code=413,
+                    detail=(
+                        f"File exceeds maximum upload size "
+                        f"of {MAX_UPLOAD_SIZE_MB}MB"
+                    )
+                )
+            tmp_file.write(file_chunk)
 
     try:
         logger.debug(f"Processing document: {file.filename}")
@@ -447,7 +478,7 @@ async def replace_document(
         batch_size = 64
         batch = []
         total_chunks = 0
-        all_points = []
+        all_points_serialized = []
         
         for point in document_processor.process_document(
             file_path=tmp_path,
@@ -455,7 +486,7 @@ async def replace_document(
             custom_metadata=custom_metadata
         ):
             batch.append(point)
-            all_points.append(point)
+            all_points_serialized.append(point.model_dump())
             total_chunks += 1
             
             if len(batch) >= batch_size:
@@ -475,7 +506,7 @@ async def replace_document(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
                         "filename": file.filename,
-                        "points": json.dumps([point.model_dump() for point in all_points]),
+                        "points": json.dumps(all_points_serialized),
                     },
                 )
             except Exception as e:

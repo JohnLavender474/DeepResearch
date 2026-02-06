@@ -1,21 +1,29 @@
 import type FileInfo from '@/model/fileInfo'
 
 
+const MAX_PARALLEL_REQUESTS = 10
+const REQUEST_TIMEOUT_MS = 10000
+
+
 export async function uploadFile(
   profileId: string,
   file: File
-): Promise<void> {  
+): Promise<void> {
   await uploadToStorage(profileId, file);
   await embedDocument(profileId, file);
 }
 
 
 export async function fetchFilesForProfile(
-  profileId: string
+  profileId: string,
+  onBatchLoaded?: (files: FileInfo[]) => void
 ): Promise<FileInfo[]> {
   try {
     const storedResponse = await fetch(
-      `/api/database/${profileId}/documents-stored`
+      `/api/database/${profileId}/documents-stored`,
+      {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+      }
     );
 
     if (!storedResponse.ok) {
@@ -34,28 +42,59 @@ export async function fetchFilesForProfile(
       })
     );
 
-    for (const doc of documents) {
-      try {
-        const embeddedResponse = await fetch(
-          `/api/database/documents-embedded?filename=${encodeURIComponent(
-            doc.filename
-          )}`
-        );
-
-        if (embeddedResponse.ok) {
-          const embeddedDoc = await embeddedResponse.json();
-          doc.embeddingsId = embeddedDoc.id;
-        }
-      } catch (error) {
-        console.warn(`Failed to fetch embedded info for ${doc.filename}`);
-      }
-    }
+    await fetchEmbeddingsInParallel(documents, onBatchLoaded);
 
     return documents;
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to fetch documents';
     throw new Error(errorMessage);
+  }
+}
+
+
+async function fetchEmbeddingsInParallel(
+  documents: FileInfo[],
+  onBatchLoaded?: (files: FileInfo[]) => void
+): Promise<void> {
+  const batchSize = MAX_PARALLEL_REQUESTS;
+
+  for (let i = 0; i < documents.length; i += batchSize) {
+    const batch = documents.slice(i, i + batchSize);
+    const promises = batch.map(doc =>
+      fetchEmbeddingForDocument(doc).catch(error => {
+        console.warn(`Failed to fetch embedding for ${doc.filename}:`, error);
+      })
+    );
+
+    await Promise.all(promises);
+
+    if (onBatchLoaded) {
+      onBatchLoaded(batch);
+    }
+  }
+}
+
+
+async function fetchEmbeddingForDocument(doc: FileInfo): Promise<void> {
+  try {
+    const embeddedResponse = await fetch(
+      `/api/database/documents-embedded?filename=${encodeURIComponent(
+        doc.filename
+      )}`,
+      {
+        signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS)
+      }
+    );
+
+    if (embeddedResponse.ok) {
+      const embeddedDoc = await embeddedResponse.json();
+      doc.embeddingsId = embeddedDoc.id;
+    }
+  } catch (error) {
+    if (error instanceof Error && error.name !== 'AbortError') {
+      throw error;
+    }
   }
 }
 

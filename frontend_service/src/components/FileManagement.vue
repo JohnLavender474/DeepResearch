@@ -23,8 +23,9 @@
                     />
                 </button>
             </div>
-            <div v-if="loadingDocuments" class="loading-container">
+            <div v-if="loadingDocuments && uploadedFiles.length === 0" class="loading-container">
                 <div class="spinner"></div>
+                <span>Loading documents...</span>
             </div>
             <ul v-else>
                 <li
@@ -38,15 +39,26 @@
                 <li v-if="uploadedFiles.length === 0" class="no-documents">
                     No documents uploaded yet
                 </li>
+                <li v-if="loadingDocuments && uploadedFiles.length > 0" class="loading-more">
+                    <div class="spinner-small"></div>
+                    <span>Loading more documents...</span>
+                </li>
             </ul>
         </div>
 
         <DocumentModal
-            :is-open="isModalOpen"
+            :is-open="isDocModalOpen"
             :document="selectedDocument"
             :profile-id="profileId"
             @close="closeDocumentModal"
             @document-deleted="handleDocumentDeleted"
+        />
+
+        <FileSplitModal
+            :is-open="isSplitModalOpen"
+            :file="oversizedFile"
+            @cancel="closeSplitModal"
+            @split="handleSplitConfirmed"
         />
     </div>
 </template>
@@ -55,7 +67,13 @@
 import { ref, watch } from 'vue'
 import { RefreshCw } from 'lucide-vue-next'
 import { uploadFile, fetchFilesForProfile } from '@/services/fileService'
+import {
+    fileSizeExceedsMax,
+    formatFileSize,
+    splitPdf,
+} from '@/services/pdfSplitService'
 import DocumentModal from './modals/DocumentModal.vue'
+import FileSplitModal from './modals/FileSplitModal.vue'
 import UploadFile from './UploadFile.vue'
 import '@/styles/shared.css'
 import type FileInfo from '@/model/fileInfo'
@@ -74,9 +92,15 @@ const emit = defineEmits<{
 
 const uploadedFiles = ref<FileInfo[]>([])
 const loadingDocuments = ref(false)
+
 const errorMessage = ref('')
-const isModalOpen = ref(false)
+
+const isDocModalOpen = ref(false)
 const selectedDocument = ref<FileInfo | null>(null)
+
+const isSplitModalOpen = ref(false)
+const oversizedFile = ref<File | null>(null)
+
 const { addToast } = useToasts()
 
 const loadUploadedFiles = async (profileId: string) => {
@@ -87,11 +111,17 @@ const loadUploadedFiles = async (profileId: string) => {
     }
 
     loadingDocuments.value = true
+    errorMessage.value = ''
+    uploadedFiles.value = []
+
     try {
-        uploadedFiles.value = await fetchFilesForProfile(profileId)
+        await fetchFilesForProfile(profileId, (batchFiles: FileInfo[]) => {
+            uploadedFiles.value = [...uploadedFiles.value, ...batchFiles]
+        })
     } catch (error) {
         console.error('Failed to load documents:', error)
         uploadedFiles.value = []
+        errorMessage.value = 'Failed to load documents. Please try again.'
     } finally {
         loadingDocuments.value = false
     }
@@ -113,6 +143,16 @@ const handleFile = async (file: File) => {
         return
     }
 
+    if (fileSizeExceedsMax(file)) {
+        oversizedFile.value = file
+        isSplitModalOpen.value = true
+        return
+    }
+
+    await uploadSingleFile(file)
+}
+
+const uploadSingleFile = async (file: File) => {
     addToast(
         `File ${file.name} is processing`,
         'info',
@@ -143,13 +183,78 @@ const handleFile = async (file: File) => {
         })
 }
 
+const closeSplitModal = () => {
+    isSplitModalOpen.value = false
+    oversizedFile.value = null
+}
+
+const handleSplitConfirmed = async (pagesPerPart: number) => {
+    const file = oversizedFile.value
+    if (!file) {
+        return
+    }
+
+    isSplitModalOpen.value = false
+
+    addToast(
+        `Splitting ${file.name} into parts...`,
+        'info',
+    )
+
+    try {
+        const parts = await splitPdf(file, pagesPerPart)
+
+        addToast(
+            `Split into ${parts.length} parts. Uploading...`,
+            'info',
+        )
+
+        for (const part of parts) {
+            const existingFile = uploadedFiles.value.find(
+                (f) => f.filename === part.file.name
+            )
+            if (existingFile) {
+                addToast(
+                    `Skipping ${part.file.name} (already exists)`,
+                    'info',
+                )
+                continue
+            }
+
+            if (fileSizeExceedsMax(part.file)) {
+                addToast(
+                    `Part ${part.file.name} still exceeds size limit `
+                    + `(${formatFileSize(part.file.size)}). `
+                    + 'Try fewer pages per part.',
+                    'error',
+                )
+                continue
+            }
+
+            await uploadSingleFile(part.file)
+        }
+    } catch (error) {
+        const message = error instanceof Error
+            ? error.message
+            : 'Failed to split PDF'
+        errorMessage.value = message
+
+        addToast(
+            `Failed to split ${file.name}: ${message}`,
+            'error',
+        )
+    } finally {
+        oversizedFile.value = null
+    }
+}
+
 const openDocumentModal = (document: FileInfo) => {
     selectedDocument.value = document
-    isModalOpen.value = true
+    isDocModalOpen.value = true
 }
 
 const closeDocumentModal = () => {
-    isModalOpen.value = false
+    isDocModalOpen.value = false
     selectedDocument.value = null
 }
 
@@ -294,6 +399,37 @@ watch(
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+}
+
+.loading-more {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
+    background-color: transparent;
+    border: none;
+    cursor: default;
+}
+
+.spinner-small {
+    border: 2px solid var(--color-border);
+    border-top: 2px solid var(--color-primary);
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+    flex-shrink: 0;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .error-message {
