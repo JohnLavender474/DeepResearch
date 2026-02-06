@@ -9,7 +9,6 @@
 
     <div class="message-header">
       <span class="ai-label">AI Response</span>
-      <span class="message-timestamp">{{ formatTime(timestamp) }}</span>
       <span 
         class="status-badge"
         :class="statusClass"
