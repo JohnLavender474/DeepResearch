@@ -59,7 +59,7 @@
           :disabled="disabled"
           class="process-select"
         >
-          <option value="">Auto</option>
+          <option value="">Default Process</option>
           <option
             v-for="pt in processTypes"
             :key="pt"
