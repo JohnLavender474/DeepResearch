@@ -9,11 +9,11 @@ from typing import Optional
 from langchain_core.messages import (
     BaseMessage,
     HumanMessage,
-    AIMessage,
 )
 from langgraph.graph.state import CompiledStateGraph
 
 from graph import build_graph
+from model.raw_chat_message import RawChatMessage
 from model.graph_input import GraphInput
 from model.graph_state import GraphState
 from model.process_selection import ProcessSelectionOutput
@@ -25,6 +25,7 @@ from service import invocations_service
 from llm.llm_factory import get_llm
 from config import EMBEDDING_SERVICE_URL
 from utils.prompt_loader import load_prompt
+from utils.copy_messages import copy_raw_messages
 
 import logging
 
@@ -47,7 +48,7 @@ CHAT_HISTORY_SEMANTIC_SEARCH_TOP_K = 8
 
 
 async def _prepare_graph_messages(
-    all_messages: list,
+    all_messages: list[RawChatMessage],
     user_query: str,
     invocation_id: str,
     model_selection: Optional[str] = None,
@@ -60,19 +61,10 @@ async def _prepare_graph_messages(
     graph_state_messages: list[BaseMessage] = []
     
     if len(all_messages) <= CHAT_HISTORY_MAX_RECENT_MESSAGES:
-        for message in all_messages:
-            if message.role == "human":
-                graph_state_messages.append(
-                    HumanMessage(content=message.content)
-                )
-            elif message.role == "ai":
-                graph_state_messages.append(
-                    AIMessage(content=message.content)
-                )
-            else:
-                logger.warning(f"Encountered message with invalid role: {message}")
-                continue
-        
+        graph_state_messages = copy_raw_messages(
+            all_messages,
+            include_system_messages=False,
+        )               
         return graph_state_messages
     
     recent_messages = all_messages[-CHAT_HISTORY_MAX_RECENT_MESSAGES:]
@@ -194,17 +186,11 @@ async def _prepare_graph_messages(
                     f"Failed to cleanup temporary collection: {cleanup_error}"
                 )
     
-    for message in recent_messages:
-        if message.role == "human":
-            graph_state_messages.append(
-                HumanMessage(content=message.content)
-            )
-        elif message.role == "ai":
-            graph_state_messages.append(
-                AIMessage(content=message.content)
-            )
-        else:
-            raise Exception(f"Invalid message: {message}")
+    messages_to_append = copy_raw_messages(
+        recent_messages,
+        include_system_messages=False,
+    )
+    graph_state_messages.extend(messages_to_append)   
     
     return graph_state_messages
 
