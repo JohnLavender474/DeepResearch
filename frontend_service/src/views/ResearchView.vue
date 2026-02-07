@@ -99,6 +99,7 @@
             :error="error"
             :profile-id="selectedProfileId"
             :process-types="processTypes"
+            :model-types="modelTypes"
             @submit="onMessageSubmitted"
             @conversation-created="onConversationCreated"
           />
@@ -135,9 +136,10 @@ import ChatHistory from '@/components/ChatHistory.vue'
 import ChatSection from '@/components/ChatSection.vue'
 import FileManagement from '@/components/FileManagement.vue'
 import { fetchProfiles } from '@/services/profileService'
-import { fetchProcessTypes } from '@/services/graphService'
+import { fetchProcessTypes, fetchModels } from '@/services/graphService'
 import ProfileSelector from '@/components/ProfileSelector.vue'
 import type Profile from '@/model/profile'
+import type UserQueryRequest from '@/model/userQueryRequest'
 import { useLocalStorage } from '@/composables/useLocalStorage'
 import { useChatSession } from '@/composables/useChatSession'
 
@@ -152,6 +154,7 @@ const profilesLoading = ref(false)
 const selectedProfileId = ref('')
 
 const processTypes = ref<string[]>([])
+const modelTypes = ref<string[]>([])
 
 const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
 
@@ -258,6 +261,7 @@ const onConversationSelected = (conversationId: string) => {
 
     if (chatSectionRef.value) {
       chatSectionRef.value.resetProcessSelection()
+      chatSectionRef.value.resetModelSelection()
     }
   }
 }
@@ -281,6 +285,7 @@ const onNewConversation = () => {
   if (chatSectionRef.value) {
     chatSectionRef.value.focusInput()
     chatSectionRef.value.resetProcessSelection()
+    chatSectionRef.value.resetModelSelection()
   }
 }
 
@@ -293,8 +298,7 @@ const onFileDeleted = (filename: string) => {
 }
 
 const onMessageSubmitted = async (
-  query: string,
-  processOverride: string,
+  request: UserQueryRequest,
 ) => {
   if (!selectedProfileId.value) {
     console.error('No profile selected')    
@@ -302,9 +306,8 @@ const onMessageSubmitted = async (
   }
 
   await submitMessage(
-    query,
+    request,
     selectedProfileId.value,
-    processOverride || undefined,
   )
 }
 
@@ -317,6 +320,12 @@ onMounted(async () => {
     processTypes.value = await fetchProcessTypes()
   } catch (err) {
     console.error('Failed to fetch process types:', err)
+  }
+
+  try {
+    modelTypes.value = await fetchModels()
+  } catch (err) {
+    console.error('Failed to fetch models:', err)
   }
 
   loading.value = false

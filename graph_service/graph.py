@@ -24,6 +24,7 @@ from model.perform_review import (
 from model.generate_summary import (
     GenerateSummaryInput,
 )
+from llm.llm_factory import get_llm
 from service.process_selection_service import (
     select_process,
 )
@@ -60,7 +61,11 @@ async def node_process_selection(state: GraphState) -> GraphState:
 
         output = state.process_selection
     else:
-        output = await select_process(input_data)
+        llm_client = get_llm(state.model_selection)
+        output = await select_process(
+            input_data,
+            llm_client=llm_client,
+        )
         logger.debug(
             f"Process type selected: {output.process_type}"
         )
@@ -87,7 +92,11 @@ async def node_simple_process(state: GraphState) -> GraphState:
         chat_history=state.messages,
     )
 
-    output = await execute_simple_process(input_data)
+    llm_client = get_llm(state.model_selection)
+    output = await execute_simple_process(
+        input_data,
+        llm_client=llm_client,
+    )
     logger.debug(f"Simple process result: {output.result}")
 
     state.current_result = output.result
@@ -114,7 +123,11 @@ async def node_parallel_tasks(
         chat_history=state.messages,
     )
     
-    output = await execute_tasks_in_parallel(input_data)
+    llm_client = get_llm(state.model_selection)
+    output = await execute_tasks_in_parallel(
+        input_data,
+        llm_client=llm_client,
+    )
     logger.debug(f"Parallel tasks output: {output.model_dump()}")
 
     state.task_entries = output.task_entries
@@ -141,7 +154,11 @@ async def node_sequential_tasks(
         chat_history=state.messages,
     )
     
-    output = await execute_tasks_in_sequence(input_data)
+    llm_client = get_llm(state.model_selection)
+    output = await execute_tasks_in_sequence(
+        input_data,
+        llm_client=llm_client,
+    )
     logger.debug(f"Sequential tasks output: {output.model_dump()}")
 
     state.task_entries = output.task_entries
@@ -167,7 +184,11 @@ async def node_perform_review(
         chat_history=state.messages,
     )
     
-    output = await execute_perform_review(input_data)
+    llm_client = get_llm(state.model_selection)
+    output = await execute_perform_review(
+        input_data,
+        llm_client=llm_client,
+    )
     logger.debug(f"Review output: {output.model_dump()}")
 
     state.review = output.review
@@ -194,7 +215,11 @@ async def node_generate_summary(
         chat_history=state.messages,
     )
     
-    output = await execute_generate_summary(input_data)
+    llm_client = get_llm(state.model_selection)
+    output = await execute_generate_summary(
+        input_data,
+        llm_client=llm_client,
+    )
     logger.debug(f"Summary output: {output.model_dump()}")
 
     state.current_result = output.summary

@@ -50,6 +50,28 @@ services:
     networks:
       - deepresearch_network
 
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - deepresearch_network
+
+  ollama-pull:
+    container_name: ollama-pull
+    image: ollama/ollama:latest
+    entrypoint: ollama pull ${OLLAMA_MODEL:-llama3.1:8b}
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    depends_on:
+      - ollama
+    restart: "no"
+    networks:
+      - deepresearch_network
+
   database_service:
     container_name: database_service
     build:
@@ -166,6 +188,9 @@ services:
       CLAUDE_API_KEY: ${CLAUDE_API_KEY}
       DATABASE_SERVICE_URL: http://database_service:8003/api/database
       EMBEDDING_SERVICE_URL: http://embedding_service:8000/api/embeddings
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      DEFAULT_LLM_MODEL: ${DEFAULT_LLM_MODEL:-ollama}
     ports:
       - "8001:8001"
     volumes:
@@ -217,3 +242,4 @@ volumes:
   minio_data:
   blob_storage:
   frontend_node_modules:
+  ollama_data:

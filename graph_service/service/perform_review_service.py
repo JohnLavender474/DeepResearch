@@ -6,7 +6,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 
-from llm.claude_client import claude_client
+from llm.llm_client import LLMClient
 from model.perform_review import (
     PerformReviewInput,
     PerformReviewOutput,
@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 
 async def execute_perform_review(
     input_data: PerformReviewInput,
+    llm_client: LLMClient,
 ) -> PerformReviewOutput:
     logger.debug("Starting task results review")
 
@@ -40,7 +41,7 @@ async def execute_perform_review(
         ),
     )
 
-    review_response = await claude_client.ainvoke(
+    review_response = await llm_client.ainvoke(
         input=messages,
     )           
 

@@ -22,7 +22,7 @@ from exception.invocation_stopped_exception import (
     DeepResearchInvocationStoppedException
 )
 from service import invocations_service
-from llm.claude_client import ClaudeClientWrapper
+from llm.llm_factory import get_llm
 from config import EMBEDDING_SERVICE_URL
 from utils.prompt_loader import load_prompt
 
@@ -50,6 +50,7 @@ async def _prepare_graph_messages(
     all_messages: list,
     user_query: str,
     invocation_id: str,
+    model_selection: Optional[str] = None,
 ) -> list[BaseMessage]:
     logger.debug(
         f"Preparing graph messages for invocation {invocation_id} with "
@@ -143,7 +144,7 @@ async def _prepare_graph_messages(
                     for i, text in enumerate(context_texts)
                 )
                 
-                llm_client = ClaudeClientWrapper()
+                llm_client = get_llm(model_selection)
                 summarization_prompt = prompt_template.format(
                     user_query=user_query,
                     context_texts=context_texts_formatted
@@ -254,6 +255,7 @@ async def stream_graph(
             all_messages=input_data.messages,
             user_query=input_data.user_query,
             invocation_id=invocation_id,
+            model_selection=input_data.model_selection,
         )
             
         # Build initial GraphState
@@ -262,6 +264,7 @@ async def stream_graph(
             user_query=input_data.user_query,
             profile_id=input_data.profile_id,
             messages=graph_state_messages,
+            model_selection=input_data.model_selection,
         )
 
         if input_data.process_override:

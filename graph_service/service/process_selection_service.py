@@ -1,7 +1,6 @@
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from llm.claude_client import claude_client
-
+from llm.llm_client import LLMClient
 from model.process_selection import (
     ProcessSelectionInput,
     ProcessSelectionOutput,
@@ -12,6 +11,7 @@ from utils.copy_messages import copy_messages
 
 async def select_process(
     input_data: ProcessSelectionInput,
+    llm_client: LLMClient,
 ) -> ProcessSelectionOutput:
     system_prompt = load_prompt("process_selection.md")
 
@@ -23,7 +23,7 @@ async def select_process(
         HumanMessage(content=input_data.user_query),
     )
     
-    output = await claude_client.ainvoke(
+    output = await llm_client.ainvoke(
         input=messages,        
         output_type=ProcessSelectionOutput,       
     )        

@@ -6,7 +6,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 
-from llm.claude_client import claude_client
+from llm.llm_client import LLMClient
 from model.generate_summary import (
     GenerateSummaryInput,
     GenerateSummaryOutput,
@@ -21,6 +21,7 @@ logger = logging.getLogger(__name__)
 
 async def execute_generate_summary(
     input_data: GenerateSummaryInput,
+    llm_client: LLMClient,
 ) -> GenerateSummaryOutput:
     logger.debug("Starting summary generation")
     
@@ -46,7 +47,7 @@ async def execute_generate_summary(
         HumanMessage(content=content),
     )
 
-    summary_response = await claude_client.ainvoke(
+    summary_response = await llm_client.ainvoke(
         input=messages,
         output_type=TaskResult,
     )

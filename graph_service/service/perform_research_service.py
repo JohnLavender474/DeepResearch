@@ -14,7 +14,7 @@ from langchain_core.messages import (
     SystemMessage,
 )
 
-from llm.claude_client import claude_client
+from llm.llm_client import LLMClient
 from model.perform_research import (
     PerformResearchInput,
     PerformResearchOutput,
@@ -39,7 +39,8 @@ logger = logging.getLogger(__name__)
 
 async def _decompose_tasks(
     input_data: PerformResearchInput,
-    execution_type: str
+    execution_type: str,
+    llm_client: LLMClient,
 ) -> TaskDecomposition:
     logger.debug(
         f"Starting task decomposition for query: " 
@@ -59,7 +60,7 @@ async def _decompose_tasks(
         )
     )
 
-    decomposition = await claude_client.ainvoke(
+    decomposition = await llm_client.ainvoke(
         input=([
             SystemMessage(
                 content=formatted_decomposition_prompt,
@@ -78,6 +79,7 @@ async def _decompose_tasks(
 
 async def execute_tasks_in_parallel(
     input_data: PerformResearchInput,
+    llm_client: LLMClient,
 ) -> PerformResearchOutput:
     logger.debug(
         f"Starting parallel task execution for query: " 
@@ -86,7 +88,8 @@ async def execute_tasks_in_parallel(
 
     decomposition = await _decompose_tasks(
         input_data, 
-        execution_type="parallel"
+        execution_type="parallel",
+        llm_client=llm_client,
     )
 
     task_execution_prompt = load_prompt(
@@ -103,6 +106,7 @@ async def execute_tasks_in_parallel(
             chat_history=copy_messages(
                 input_data.chat_history
             ) if input_data.chat_history else None,
+            llm_client=llm_client,
         )
 
     task_coroutines = [
@@ -128,6 +132,7 @@ async def execute_tasks_in_parallel(
 
 async def execute_tasks_in_sequence(
     input_data: PerformResearchInput,
+    llm_client: LLMClient,
 ) -> PerformResearchOutput:
     logger.debug(
         f"Starting sequential task execution for query: " 
@@ -136,7 +141,8 @@ async def execute_tasks_in_sequence(
 
     decomposition = await _decompose_tasks(
         input_data, 
-        execution_type="sequential"
+        execution_type="sequential",
+        llm_client=llm_client,
     )
 
     task_execution_prompt = load_prompt(
@@ -157,7 +163,8 @@ async def execute_tasks_in_sequence(
             task=task,
             chat_history=chat_history,
             prompt=task_execution_prompt,
-            collection_name=input_data.collection_name,            
+            collection_name=input_data.collection_name,
+            llm_client=llm_client,
         )
         task_entries.append(task_entry)
 
@@ -182,6 +189,7 @@ async def execute_tasks_in_sequence(
 
 async def _generate_search_query(
     task: str,
+    llm_client: LLMClient,
 ) -> str:
     logger.debug(f"Generating search query for task: {task}")
     search_query_prompt = load_prompt(
@@ -192,7 +200,7 @@ async def _generate_search_query(
     )
 
     search_query_response = (
-        await claude_client.ainvoke(
+        await llm_client.ainvoke(
             input=[
                 SystemMessage(
                     content=formatted_search_prompt,
@@ -381,6 +389,7 @@ def _filter_documents_by_score(
 async def _summarize_chunk(
     task: str,
     content: str,
+    llm_client: LLMClient,
 ) -> DocumentSummary:
     summarization_prompt = load_prompt("chunk_summarization.md")   
 
@@ -389,7 +398,7 @@ async def _summarize_chunk(
         "content": content,
     })
 
-    summary_response = await claude_client.ainvoke(
+    summary_response = await llm_client.ainvoke(
         input=[
             SystemMessage(content=summarization_prompt),
             HumanMessage(content=task_input),
@@ -403,12 +412,17 @@ async def _summarize_chunk(
 async def _summarization_and_relevancy_filtering(
     task: str,
     documents: list[SearchResult],
+    llm_client: LLMClient,
 ) -> list[SearchResult]:
     logger.debug(f"Summarizing {len(documents)} documents for task: {task}")
 
     async def summarize_single(doc: SearchResult) -> tuple[SearchResult, bool]:
         original_content = doc.metadata.content
-        summary_response = await _summarize_chunk(task, original_content)
+        summary_response = await _summarize_chunk(
+            task,
+            original_content,
+            llm_client=llm_client,
+        )
         doc.content_summary = summary_response.summary
         return doc, summary_response.relevant
 
@@ -429,11 +443,15 @@ async def _execute_task(
     task: str,
     prompt: str,
     collection_name: str,
+    llm_client: LLMClient,
     chat_history: Optional[list[BaseMessage]] = None,
 ) -> TaskEntry:
     logger.debug(f"Executing task: {task}")
     try:
-        search_query = await _generate_search_query(task)
+        search_query = await _generate_search_query(
+            task,
+            llm_client=llm_client,
+        )
        
         documents = await _search_documents(
             collection_name,
@@ -449,6 +467,7 @@ async def _execute_task(
             relevant_documents = await _summarization_and_relevancy_filtering(
                 task,
                 filtered_documents,
+                llm_client=llm_client,
             )
 
             logger.debug(
@@ -505,7 +524,7 @@ async def _execute_task(
 
         messages.append(HumanMessage(content=task))
 
-        output = await claude_client.ainvoke(
+        output = await llm_client.ainvoke(
             input=messages,
             output_type=TaskResult,
         )

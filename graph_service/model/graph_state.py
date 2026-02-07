@@ -20,4 +20,5 @@ class GraphState(BaseModel):
     process_selection: Optional[ProcessSelectionOutput] = None
     task_entries: list[TaskEntry] = []
     review: str = ""
-    current_result: str = ""   
+    current_result: str = ""
+    model_selection: Optional[str] = None   

@@ -4,6 +4,7 @@ import type ChatMessageViewModel from "@/model/chatMessageViewModel";
 import type AIMessageContent from "@/model/aiMessageContent";
 import type Conversation from "@/model/conversation";
 import type GraphStep from "@/model/graphStep";
+import type UserQueryRequest from "@/model/userQueryRequest";
 import {
   fetchConversation,
   fetchConversationsForProfile,
@@ -273,11 +274,10 @@ export function useChatSession() {
   };
 
   const submitMessage = async (
-    query: string,
+    request: UserQueryRequest,
     profileId: string,
-    processOverride?: string,
   ) => {
-    if (!query.trim()) {
+    if (!request.query.trim()) {
       console.warn("Empty message submitted");
       error.value = "Please enter a message";
       return;
@@ -293,7 +293,7 @@ export function useChatSession() {
       console.log("No active conversation, creating a new one");
 
       try {
-        activeConversationId = await createNewConversation(profileId, query);
+        activeConversationId = await createNewConversation(profileId, request.query);
 
         loadConversations(profileId);
       } catch (err) {
@@ -329,7 +329,7 @@ export function useChatSession() {
         profileId,
         activeConversationId,
         "human",
-        { content: query },
+        { content: request.query },
         userTimestamp,
       );
 
@@ -390,13 +390,14 @@ export function useChatSession() {
     }
 
     try {
-      console.log("Starting graph execution stream for query:", query);    
+      console.log("Starting graph execution stream for query:", request.query);    
 
       const stream = streamGraphExecution({
-        user_query: query,
+        user_query: request.query,
         profile_id: profileId,
         messages: chatHistory,
-        process_override: processOverride || undefined,
+        process_override: request.processOverride,
+        model_selection: request.modelSelection,
       });
 
       let invocationIdSet = false;

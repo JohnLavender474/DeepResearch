@@ -16,6 +16,7 @@
       :disabled="props.isProcessing"
       :loading="props.isLoadingConversation"
       :process-types="props.processTypes"
+      :model-types="props.modelTypes"
       @submit="onSubmit"
     />
 
@@ -31,6 +32,7 @@ import { ref, watch } from 'vue'
 import ChatMessages from './ChatMessages.vue'
 import UserInput from './UserInput.vue'
 import type ChatMessageViewModel from '@/model/chatMessageViewModel'
+import type UserQueryRequest from '@/model/userQueryRequest'
 import '@/styles/shared.css'
 
 
@@ -41,12 +43,13 @@ interface ChatSectionProps {
   error: string
   profileId: string
   processTypes: string[]
+  modelTypes: string[]
 }
 
 const props = defineProps<ChatSectionProps>()
 
 const emit = defineEmits<{
-  (e: 'submit', query: string, processOverride: string): void
+  (e: 'submit', request: UserQueryRequest): void
   (e: 'conversation-created', conversationId: string): void
 }>()
 
@@ -63,10 +66,9 @@ watch(
 )
 
 const onSubmit = async (
-  query: string,
-  processOverride: string,
+  request: UserQueryRequest,
 ) => {
-  emit('submit', query, processOverride)
+  emit('submit', request)
 }
 
 const focusInput = () => {
@@ -77,9 +79,14 @@ const resetProcessSelection = () => {
   userInputRef.value?.resetProcessType()
 }
 
+const resetModelSelection = () => {
+  userInputRef.value?.resetModelType()
+}
+
 defineExpose({
   focusInput,
   resetProcessSelection,
+  resetModelSelection,
 })
 </script>
 

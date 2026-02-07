@@ -17,7 +17,25 @@ def _get_optional_env_var(var_name, default_value):
     return os.getenv(var_name, default_value)
 
 
-CLAUDE_API_KEY = _get_required_env_var("CLAUDE_API_KEY")
+CLAUDE_API_KEY = _get_optional_env_var(
+    var_name="CLAUDE_API_KEY",
+    default_value=None,
+)
+
+OLLAMA_BASE_URL = _get_optional_env_var(
+    var_name="OLLAMA_BASE_URL",
+    default_value=None,
+)
+
+OLLAMA_MODEL = _get_optional_env_var(
+    var_name="OLLAMA_MODEL",
+    default_value=None,
+)
+
+DEFAULT_LLM_MODEL = _get_optional_env_var(
+    var_name="DEFAULT_LLM_MODEL",
+    default_value="ollama",
+)
 
 DATABASE_SERVICE_URL = _get_optional_env_var(
     var_name="DATABASE_SERVICE_URL",

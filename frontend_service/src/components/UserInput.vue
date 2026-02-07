@@ -40,6 +40,21 @@
 
       <div class="submit-row">
         <select
+          v-model="selectedModelType"
+          :disabled="disabled"
+          class="model-select"
+        >
+          <option value="">Default Model</option>
+          <option
+            v-for="mt in modelTypes"
+            :key="mt"
+            :value="mt"
+          >
+            {{ mt }}
+          </option>
+        </select>
+
+        <select
           v-model="selectedProcessType"
           :disabled="disabled"
           class="process-select"
@@ -68,25 +83,30 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 
+import type UserQueryRequest from '@/model/userQueryRequest'
+
 
 interface UserInputProps {
   disabled?: boolean
   loading?: boolean
   processTypes?: string[]
+  modelTypes?: string[]
 }
 
 const props = withDefaults(defineProps<UserInputProps>(), {
   disabled: false,
   loading: false,
   processTypes: () => [],
+  modelTypes: () => [],
 })
 
 const emit = defineEmits<{
-  (e: 'submit', query: string, processOverride: string): void
+  (e: 'submit', request: UserQueryRequest): void
 }>()
 
 const query = ref('')
 const selectedProcessType = ref('')
+const selectedModelType = ref('')
 const isCollapsed = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
@@ -120,7 +140,11 @@ const onSubmit = () => {
     !props.disabled &&
     !props.loading
   ) {
-    emit('submit', query.value, selectedProcessType.value)
+    emit('submit', {
+      query: query.value,
+      processOverride: selectedProcessType.value || undefined,
+      modelSelection: selectedModelType.value || undefined,
+    })
     query.value = ''
   }
 }
@@ -138,10 +162,15 @@ const resetProcessType = () => {
   selectedProcessType.value = ''
 }
 
+const resetModelType = () => {
+  selectedModelType.value = ''
+}
+
 defineExpose({
   focus,
   clear,
   resetProcessType,
+  resetModelType,
 })
 </script>
 
@@ -195,6 +224,7 @@ defineExpose({
   align-items: stretch;
 }
 
+.model-select,
 .process-select {
   padding: 0.75rem 1rem;
   font-size: 0.9rem;
@@ -207,12 +237,14 @@ defineExpose({
   min-width: 160px;
 }
 
+.model-select:focus,
 .process-select:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
 }
 
+.model-select:disabled,
 .process-select:disabled {
   background-color: var(--color-surface-hover);
   color: var(--color-text-tertiary);

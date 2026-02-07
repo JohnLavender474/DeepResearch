@@ -10,6 +10,7 @@ export interface GraphInput {
   messages?: SimpleMessage[]
   custom_start_node?: string
   process_override?: string
+  model_selection?: string
 }
 
 
@@ -19,6 +20,19 @@ export async function fetchProcessTypes(): Promise<string[]> {
   if (!response.ok) {
     throw new Error(
       `Failed to fetch process types: ${response.statusText}`
+    )
+  }
+
+  return response.json()
+}
+
+
+export async function fetchModels(): Promise<string[]> {
+  const response = await fetch('/api/graph/models')
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to fetch models: ${response.statusText}`
     )
   }
 
