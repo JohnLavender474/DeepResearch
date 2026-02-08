@@ -1,6 +1,6 @@
 <template>
   <div class="chat-section">
-    <div v-if="props.isLoadingConversation" class="loading-conversation">
+    <div v-if="props.chatStatus === 'loading'" class="loading-conversation">
       <div class="spinner"></div>
       <span>Loading conversation...</span>
     </div>
@@ -13,11 +13,11 @@
 
     <UserInput
       ref="userInputRef"
-      :disabled="props.isProcessing"
-      :loading="props.isLoadingConversation"
+      :chat-status="props.chatStatus"
       :process-types="props.processTypes"
       :model-types="props.modelTypes"
       @submit="onSubmit"
+      @stop="onStop"
     />
 
     <div v-if="props.error" class="error-banner">
@@ -33,13 +33,13 @@ import ChatMessages from './ChatMessages.vue'
 import UserInput from './UserInput.vue'
 import type ChatMessageViewModel from '@/model/chatMessageViewModel'
 import type UserQueryRequest from '@/model/userQueryRequest'
+import type { ChatStatus } from '@/model/chatStatus'
 import '@/styles/shared.css'
 
 
 interface ChatSectionProps {
   messages: ChatMessageViewModel[]
-  isProcessing: boolean
-  isLoadingConversation: boolean
+  chatStatus: ChatStatus
   error: string
   profileId: string
   processTypes: string[]
@@ -51,15 +51,16 @@ const props = defineProps<ChatSectionProps>()
 const emit = defineEmits<{
   (e: 'submit', request: UserQueryRequest): void
   (e: 'conversation-created', conversationId: string): void
+  (e: 'stop'): void
 }>()
 
 const userInputRef = ref<InstanceType<typeof UserInput> | null>(null)
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages> | null>(null)
 
 watch(
-  () => props.isLoadingConversation,
-  (isLoading, wasLoading) => {
-    if (wasLoading && !isLoading && props.messages.length > 0) {
+  () => props.chatStatus,
+  (newStatus, oldStatus) => {
+    if (oldStatus === 'loading' && newStatus !== 'loading' && props.messages.length > 0) {
       chatMessagesRef.value?.scrollToBottom()
     }
   }
@@ -69,6 +70,10 @@ const onSubmit = async (
   request: UserQueryRequest,
 ) => {
   emit('submit', request)
+}
+
+const onStop = () => {
+  emit('stop')
 }
 
 const focusInput = () => {

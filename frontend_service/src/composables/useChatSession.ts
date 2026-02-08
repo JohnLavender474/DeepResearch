@@ -2,6 +2,7 @@ import { ref, computed } from "vue";
 
 import type ChatMessageViewModel from "@/model/chatMessageViewModel";
 import type AIMessageContent from "@/model/aiMessageContent";
+import type { ChatStatus } from "@/model/chatStatus";
 import type Conversation from "@/model/conversation";
 import type GraphStep from "@/model/graphStep";
 import type UserQueryRequest from "@/model/userQueryRequest";
@@ -11,7 +12,11 @@ import {
   createConversation,
 } from "@/services/conversationService";
 import { createChatTurn, updateChatTurn } from "@/services/chatTurnService";
-import { streamGraphExecution, type SimpleMessage } from "@/services/graphService";
+import {
+  streamGraphExecution,
+  stopInvocation,
+  type SimpleMessage,
+} from "@/services/graphService";
 import { fetchInvocation } from "@/services/invocationService";
 
 
@@ -21,8 +26,7 @@ export function useChatSession() {
   const messages = ref<ChatMessageViewModel[]>([]);
   const conversations = ref<Conversation[]>([]);
 
-  const isProcessing = ref(false);
-  const isLoadingConversation = ref(false);
+  const chatStatus = ref<ChatStatus>('idle');
   const isLoadingConversations = ref(false);
 
   const error = ref("");
@@ -30,7 +34,12 @@ export function useChatSession() {
   const currentConversationId = ref("");
   const currentProfileId = ref("");
 
+  const activeInvocationId = ref("");
+  const activeAiMessageId = ref("");
+
   let pollingIntervalId: number | null = null;
+
+  let currentAbortController: AbortController | null = null;
 
   const stopPolling = () => {
     if (pollingIntervalId !== null) {
@@ -75,7 +84,7 @@ export function useChatSession() {
           invocation.status === 'stopped' ||
           invocation.status === 'error'
         ) {
-          isProcessing.value = false;
+          chatStatus.value = 'idle';
           stopPolling();
           console.log(
             `Invocation ${invocationId} reached terminal state: ${invocation.status}`
@@ -104,6 +113,58 @@ export function useChatSession() {
     }, INVOCATION_POLL_INTERVAL);
 
     pollInvocationStatus(profileId, invocationId, messageId);
+  };
+
+  const stopCurrentInvocation = async () => {
+    const invocationId = activeInvocationId.value;
+    const profileId = currentProfileId.value;
+    const messageId = activeAiMessageId.value;
+
+    if (!invocationId || !profileId) {
+      return;
+    }
+
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+    }
+
+    stopPolling();
+
+    if (messageId) {
+      const messageIndex = messages.value.findIndex(
+        (m) => m.id === messageId,
+      );
+
+      if (messageIndex !== -1) {
+        const existing = messages.value[
+          messageIndex
+        ].content as AIMessageContent;
+
+        messages.value[messageIndex].content = {
+          ...existing,
+          status: 'stopped',
+        } as AIMessageContent;
+      }
+    }
+
+    chatStatus.value = 'idle';
+
+    try {
+      await stopInvocation(
+        invocationId,
+        profileId,
+      );
+
+      console.log(
+        `Stop request sent for invocation ${invocationId}`,
+      );
+    } catch (err) {
+      console.error("Error stopping invocation:", err);
+    }
+
+    activeInvocationId.value = "";
+    activeAiMessageId.value = "";
   };
 
   const loadConversations = async (profileId: string) => {
@@ -139,8 +200,7 @@ export function useChatSession() {
       return;
     }
 
-    isLoadingConversation.value = true;
-    isProcessing.value = false;
+    chatStatus.value = 'loading';
 
     error.value = "";
     
@@ -215,9 +275,12 @@ export function useChatSession() {
           typeof lastMessage.content === 'object' &&
           lastMessage.content.status === 'running'
         ) {
-          isProcessing.value = true;
+          chatStatus.value = 'running';
 
           if (lastMessage.content.invocation_id) {
+            activeInvocationId.value = lastMessage.content.invocation_id;
+            activeAiMessageId.value = lastMessage.id;
+
             startPolling(
               profileId,
               lastMessage.content.invocation_id,
@@ -242,7 +305,9 @@ export function useChatSession() {
       messages.value = [];
       currentConversationId.value = "";
     } finally {
-      isLoadingConversation.value = false;
+      if (chatStatus.value === 'loading') {
+        chatStatus.value = 'idle';
+      }
     }
   };
 
@@ -285,7 +350,7 @@ export function useChatSession() {
 
     error.value = "";
 
-    isProcessing.value = true;
+    chatStatus.value = 'running';
 
     let activeConversationId = currentConversationId.value;
 
@@ -300,7 +365,7 @@ export function useChatSession() {
         error.value =
           err instanceof Error ? err.message : "Failed to create conversation";
 
-        isProcessing.value = false;
+        chatStatus.value = 'idle';
 
         return;
       }
@@ -346,7 +411,7 @@ export function useChatSession() {
       error.value =
         err instanceof Error ? err.message : "Failed to save message";
 
-      isProcessing.value = false;
+      chatStatus.value = 'idle';
 
       return;
     }
@@ -384,7 +449,7 @@ export function useChatSession() {
       error.value =
         err instanceof Error ? err.message : "Failed to create AI turn";
 
-      isProcessing.value = false;
+      chatStatus.value = 'idle';
 
       return;
     }
@@ -392,13 +457,18 @@ export function useChatSession() {
     try {
       console.log("Starting graph execution stream for query:", request.query);    
 
-      const stream = streamGraphExecution({
-        user_query: request.query,
-        profile_id: profileId,
-        messages: chatHistory,
-        process_override: request.processOverride,
-        model_selection: request.modelSelection,
-      });
+      currentAbortController = new AbortController();
+
+      const stream = streamGraphExecution(
+        {
+          user_query: request.query,
+          profile_id: profileId,
+          messages: chatHistory,
+          process_override: request.processOverride,
+          model_selection: request.modelSelection,
+        },
+        currentAbortController.signal,
+      );
 
       let invocationIdSet = false;
       let currentInvocationId: string | null = null;
@@ -432,6 +502,8 @@ export function useChatSession() {
                 );
 
                 currentInvocationId = parsedData.invocation_id;
+                activeInvocationId.value = currentInvocationId ?? "";
+                activeAiMessageId.value = aiChatTurnId;
 
                 await updateChatTurn(profileId, aiChatTurnId, {
                   invocation_id: parsedData.invocation_id,
@@ -538,27 +610,43 @@ export function useChatSession() {
         }
       }
     } catch (err) {
-      console.error("Error during graph execution:", err);
-      error.value = err instanceof Error ? err.message : "An error occurred";
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        console.log("Graph execution stream aborted by user");
+      } else {
+        console.error("Error during graph execution:", err);
+        error.value = err instanceof Error ? err.message : "An error occurred";
+      }
     } finally {
-      isProcessing.value = false;
+      if (chatStatus.value === 'running') {
+        chatStatus.value = 'idle';
+      }
+      currentAbortController = null;
+      activeInvocationId.value = "";
+      activeAiMessageId.value = "";
     }
   };
 
   const clearChatSession = () => {
     stopPolling();
+
+    if (currentAbortController) {
+      currentAbortController.abort();
+      currentAbortController = null;
+    }
+
     messages.value = [];
     currentConversationId.value = "";
     currentProfileId.value = "";
+    activeInvocationId.value = "";
+    activeAiMessageId.value = "";
     error.value = "";
-    isProcessing.value = false;
+    chatStatus.value = 'idle';
   };
 
   return {
     messages: computed(() => messages.value),
     conversations: computed(() => conversations.value),
-    isProcessing: computed(() => isProcessing.value),
-    isLoadingConversation: computed(() => isLoadingConversation.value),
+    chatStatus: computed(() => chatStatus.value),
     isLoadingConversations: computed(() => isLoadingConversations.value),
     error: computed(() => error.value),
     currentConversationId: computed(() => currentConversationId.value),
@@ -566,6 +654,7 @@ export function useChatSession() {
     loadConversation,
     createNewConversation,
     submitMessage,
+    stopCurrentInvocation,
     clearChatSession,
     setError: (errorMessage: string) => {
       error.value = errorMessage;

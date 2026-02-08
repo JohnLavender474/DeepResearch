@@ -9,10 +9,10 @@ def get_llm(
 ) -> LLMClient:
     selected_model = model_selection or DEFAULT_LLM_MODEL
 
-    if selected_model == "ollama":
-        from llm.ollama_client import OllamaClientWrapper
+    if selected_model == "openai":
+        from llm.openai_client import OpenAIClientWrapper
 
-        return OllamaClientWrapper()
+        return OpenAIClientWrapper()
 
     if selected_model == "claude":
         from llm.claude_client import ClaudeClientWrapper
@@ -21,5 +21,5 @@ def get_llm(
 
     raise ValueError(
         f"Unknown model selection: '{selected_model}'. "
-        f"Supported values: 'claude', 'ollama'."
+        f"Supported values: 'claude', 'openai'."
     )

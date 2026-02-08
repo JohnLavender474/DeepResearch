@@ -40,8 +40,27 @@ export async function fetchModels(): Promise<string[]> {
 }
 
 
+export async function stopInvocation(
+  invocationId: string,
+  profileId: string,
+): Promise<void> {
+  const response = await fetch(
+    `/api/graph/${invocationId}/stop`
+    + `?profile_id=${encodeURIComponent(profileId)}`,
+    { method: 'POST' },
+  )
+
+  if (!response.ok) {
+    throw new Error(
+      `Failed to stop invocation: ${response.statusText}`
+    )
+  }
+}
+
+
 export async function* streamGraphExecution(
-  input: GraphInput
+  input: GraphInput,
+  signal?: AbortSignal,
 ): AsyncGenerator<string, void, unknown> {
   if (!input.profile_id) {
     throw new Error('No profile selected');
@@ -53,6 +72,7 @@ export async function* streamGraphExecution(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(input),
+    signal,
   })
 
   if (!response.ok) {

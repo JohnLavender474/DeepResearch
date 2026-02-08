@@ -156,8 +156,8 @@ async def node_sequential_tasks(
     
     llm_client = get_llm(state.model_selection)
     output = await execute_tasks_in_sequence(
-        input_data,
-        llm_client=llm_client,
+        input_data, 
+        llm_client=llm_client,       
     )
     logger.debug(f"Sequential tasks output: {output.model_dump()}")
 

@@ -34,14 +34,14 @@
         v-model="query"
         placeholder="Enter your research query..."
         rows="4"
-        :disabled="disabled"
+        :disabled="isInputDisabled"
         @keydown.meta.enter="onSubmit"        
       ></textarea>
 
       <div class="submit-row">
         <select
           v-model="selectedModelType"
-          :disabled="disabled"
+          :disabled="isInputDisabled"
           class="model-select"
         >
           <option value="">Default Model</option>
@@ -56,7 +56,7 @@
 
         <select
           v-model="selectedProcessType"
-          :disabled="disabled"
+          :disabled="isInputDisabled"
           class="process-select"
         >
           <option value="">Default Process</option>
@@ -71,9 +71,18 @@
 
         <button
           type="submit"
-          :disabled="disabled || !isValidInput"
+          :disabled="isInputDisabled || !isValidInput"
         >
           {{ submitButtonText }}
+        </button>
+
+        <button
+          v-if="props.chatStatus === 'running'"
+          type="button"
+          class="stop-button"
+          @click="onStop"
+        >
+          Stop
         </button>
       </div>
     </form>
@@ -84,24 +93,23 @@
 import { ref, computed } from 'vue'
 
 import type UserQueryRequest from '@/model/userQueryRequest'
+import type { ChatStatus } from '@/model/chatStatus'
 
 
 interface UserInputProps {
-  disabled?: boolean
-  loading?: boolean
+  chatStatus: ChatStatus
   processTypes?: string[]
   modelTypes?: string[]
 }
 
 const props = withDefaults(defineProps<UserInputProps>(), {
-  disabled: false,
-  loading: false,
   processTypes: () => [],
   modelTypes: () => [],
 })
 
 const emit = defineEmits<{
   (e: 'submit', request: UserQueryRequest): void
+  (e: 'stop'): void
 }>()
 
 const query = ref('')
@@ -109,6 +117,10 @@ const selectedProcessType = ref('')
 const selectedModelType = ref('')
 const isCollapsed = ref(false)
 const textareaRef = ref<HTMLTextAreaElement | null>(null)
+
+const isInputDisabled = computed(
+  () => props.chatStatus !== 'idle'
+)
 
 const isValidInput = computed(
   () => query.value.trim().length > 0
@@ -118,10 +130,10 @@ const submitButtonText = computed(() => {
   if (!query.value.trim()) {
     return 'Type in a prompt...'
   }
-  if (props.loading) {
+  if (props.chatStatus === 'loading') {
     return 'Loading...'
   }
-  if (props.disabled) {
+  if (props.chatStatus === 'running') {
     return 'Processing...'
   }
   return 'Submit Query'
@@ -137,8 +149,7 @@ const formatProcessType = (pt: string): string => {
 const onSubmit = () => {
   if (
     query.value.trim() &&
-    !props.disabled &&
-    !props.loading
+    !isInputDisabled.value
   ) {
     emit('submit', {
       query: query.value,
@@ -147,6 +158,10 @@ const onSubmit = () => {
     })
     query.value = ''
   }
+}
+
+const onStop = () => {
+  emit('stop')
 }
 
 const focus = () => {
@@ -295,5 +310,21 @@ button[type="submit"]:hover:not(:disabled) {
 button[type="submit"]:disabled {
   background-color: var(--color-border);
   cursor: not-allowed;
+}
+
+.stop-button {
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  background-color: var(--color-error-bg, #dc2626);
+  color: white;
+  border: 1px solid var(--color-error-border, #b91c1c);
+  border-radius: var(--size-border-radius-sm);
+  cursor: pointer;
+  transition: background-color var(--transition-base);
+  font-weight: 500;
+}
+
+.stop-button:hover {
+  background-color: var(--color-error-border, #b91c1c);
 }
 </style>

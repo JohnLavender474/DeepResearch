@@ -94,14 +94,14 @@
           <ChatSection
             ref="chatSectionRef"
             :messages="messages"
-            :is-processing="isProcessing"
-            :is-loading-conversation="isLoadingConversation"
+            :chat-status="chatStatus"
             :error="error"
             :profile-id="selectedProfileId"
             :process-types="processTypes"
             :model-types="modelTypes"
             @submit="onMessageSubmitted"
             @conversation-created="onConversationCreated"
+            @stop="onStopRequested"
           />
         </main>
 
@@ -191,14 +191,14 @@ const closeSidebars = () => {
 const {
   messages,
   conversations,
-  isProcessing,
-  isLoadingConversation,
+  chatStatus,
   isLoadingConversations,
   error,
   currentConversationId,
   loadConversations,
   loadConversation,
   submitMessage,
+  stopCurrentInvocation,
   clearChatSession,
 } = useChatSession()
 
@@ -295,6 +295,10 @@ const onFileUploaded = (filename: string) => {
 
 const onFileDeleted = (filename: string) => {
   console.log(`File deleted: ${filename}`)
+}
+
+const onStopRequested = async () => {
+  await stopCurrentInvocation()
 }
 
 const onMessageSubmitted = async (

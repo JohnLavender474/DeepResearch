@@ -22,19 +22,19 @@ CLAUDE_API_KEY = _get_optional_env_var(
     default_value=None,
 )
 
-OLLAMA_BASE_URL = _get_optional_env_var(
-    var_name="OLLAMA_BASE_URL",
+OPENAI_API_KEY = _get_optional_env_var(
+    var_name="OPENAI_API_KEY",
     default_value=None,
 )
 
-OLLAMA_MODEL = _get_optional_env_var(
-    var_name="OLLAMA_MODEL",
+OPENAI_MODEL = _get_optional_env_var(
+    var_name="OPENAI_MODEL",
     default_value=None,
 )
 
 DEFAULT_LLM_MODEL = _get_optional_env_var(
     var_name="DEFAULT_LLM_MODEL",
-    default_value="ollama",
+    default_value="openai",
 )
 
 DATABASE_SERVICE_URL = _get_optional_env_var(
