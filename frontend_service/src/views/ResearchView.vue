@@ -468,7 +468,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 
 .sidebar,
 .sidebar-right {
-  height: 90%;
+  height: 100%;
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -507,7 +507,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 .main-section {
   display: flex;
   flex-direction: column;
-  height: 90%;
+  height: 100%;
   min-height: 0;
   overflow: hidden;
 }

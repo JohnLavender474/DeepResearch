@@ -70,7 +70,7 @@ main {
   padding: 0;
   padding-top: 4rem;  
   width: 100%;
-  height: calc(100vh - 4rem);
+  height: calc(100vh - 2rem);
   overflow: hidden;
 }
 </style>
