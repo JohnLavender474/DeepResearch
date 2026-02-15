@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Optional
+from datetime import datetime
 
 from langchain_core.messages import (
     AIMessage,
@@ -84,8 +84,13 @@ async def execute_tasks_in_parallel(
         llm_client=llm_client,
     )
 
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
     task_execution_prompt = load_prompt(
         "task_execution.md",
+        args={
+            "current_date": current_date,      
+        },
     )
 
     async def _execute_task_with_message_history(
@@ -139,11 +144,17 @@ async def execute_tasks_in_sequence(
         llm_client=llm_client,
     )
 
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
     task_execution_prompt = load_prompt(
         "task_execution.md",
+        args={
+            "current_date": current_date,      
+        },
     )
 
     task_entries: list[TaskEntry] = []
+
     chat_history: list[BaseMessage] = copy_messages(
         input_data.chat_history
     ) if input_data.chat_history else []
@@ -170,6 +181,13 @@ async def execute_tasks_in_sequence(
             chat_history.append(
                 AIMessage(content=(task_entry.result))
             )
+        else:
+            logger.debug(
+                f"Task failed: {task_entry.task}. " 
+                f"Result: {task_entry.result}"
+            )
+            # Depending on requirements, could choose to break here or continue with next tasks
+            # For now, we will continue executing remaining tasks
 
     logger.debug(
         f"All tasks executed sequentially. " 

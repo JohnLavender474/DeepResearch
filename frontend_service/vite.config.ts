@@ -16,11 +16,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: '0.0.0.0',   
-    proxy: {
-      '/api/embeddings': {
-        target: 'http://embedding_service:8000',
-        changeOrigin: true
-      },
+    proxy: {    
       '/api/graph': {
         target: 'http://graph_service:8001',
         changeOrigin: true
@@ -32,7 +28,11 @@ export default defineConfig({
       '/api/database': {
         target: 'http://database_service:8003',
         changeOrigin: true
-      }
+      },
+      '/api/embeddings': {
+        target: 'http://embedding_service:8004',
+        changeOrigin: true
+      },
     }
   }
 })

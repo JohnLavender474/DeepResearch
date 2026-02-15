@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from llm.llm_client import LLMClient
 from model.simple_process import (
     SimpleProcessInput,
@@ -11,7 +13,14 @@ async def execute_simple_process(
     input_data: SimpleProcessInput,
     llm_client: LLMClient,
 ) -> SimpleProcessOutput:
-    task_execution_prompt = load_prompt("task_execution.md")
+    current_date = datetime.now().strftime("%Y-%m-%d")
+
+    task_execution_prompt = load_prompt(
+        "task_execution.md",
+        args={
+            "current_date": current_date,      
+        },
+    )
 
     task_entry = await execute_task(
         task=input_data.query,

@@ -11,9 +11,9 @@ mkdir -p ${LOG_DIR}
 
 exec > >(tee -a "${LOG_FILE}") 2>&1
 
-# Check if port 8000 is in use and kill the process if it is
+# Check if configured port is in use and kill the process if it is
 
-PORT=8000
+PORT=8004
 if lsof -i :${PORT} > /dev/null 2>&1; then
     PID=$(lsof -i :${PORT} -t)
     echo "Port ${PORT} is in use by process(es): ${PID}"
@@ -48,6 +48,6 @@ fi
 
 # Start the embedding service using Uvicorn
 
-python -m uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+python -m uvicorn app:app --host 0.0.0.0 --port ${PORT} --reload
 
-echo "Embedding service started on port 8000."
+echo "Embedding service started on port ${PORT}."

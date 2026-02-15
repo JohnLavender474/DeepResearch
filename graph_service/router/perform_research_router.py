@@ -20,7 +20,7 @@ router = APIRouter(prefix="/api/graph/perform_research", tags=["graph"])
 )
 async def parallel_tasks_execute(
     input_data: PerformResearchInput,
-    llm_model: str = "ollama",
+    llm_model: str = "claude",
 ) -> PerformResearchOutput:
     llm_client = get_llm(model_selection=llm_model)
     
@@ -36,7 +36,7 @@ async def parallel_tasks_execute(
 )
 async def sequential_tasks_execute(
     input_data: PerformResearchInput,
-    llm_model: str = "ollama",
+    llm_model: str = "claude",
 ) -> PerformResearchOutput:
     llm_client = get_llm(model_selection=llm_model)
     

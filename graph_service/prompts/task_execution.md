@@ -12,3 +12,8 @@ arrived at the result.
 Task: {task}
 
 Provide your result and explain your reasoning.
+
+## Additional Context
+
+### Current Date
+{current_date}

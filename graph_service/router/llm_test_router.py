@@ -22,7 +22,7 @@ class LLMTestQueryInput(BaseModel):
     user_query: str = Field(description="The query to send to the LLM")
     model: Optional[str] = Field(
         default=None,
-        description="The model to use (e.g., 'ollama', 'claude'). If not specified, uses default."
+        description="The model to use (e.g., 'claude', 'openai'). If not specified, uses default."
     )
     chat_history: Optional[list[RawChatMessage]] = Field(
         default=None,

@@ -1,16 +1,14 @@
 import json
+import httpx
 import asyncio
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import StreamingResponse
-import httpx
-
-from fastapi import Query
 
 from model.graph_input import GraphInput
 from model.process_selection import PROCESS_TYPES
 from model.model_selection import MODEL_TYPES
-from service.graph_streamer import (
+from utils.graph_streamer import (
     consume_graph_to_queue,
     stream_from_queue,
 )
