@@ -18,7 +18,7 @@
           v-model="profileName"
           type="text"
           autocomplete="off"
-          placeholder="lowercase alphanumeric"
+          placeholder="lowercase alphanumeric and underscores"
         />
         <p v-if="validationError" class="error-text">
           {{ validationError }}
@@ -74,7 +74,7 @@ const profileName = ref('')
 const submitError = ref('')
 const isSubmitting = ref(false)
 
-const profileIdPattern = /^[a-z0-9]+$/
+const profileIdPattern = /^[a-z0-9_]+$/
 
 const validationError = computed(() => {
   if (!profileName.value) {
@@ -82,7 +82,7 @@ const validationError = computed(() => {
   }
 
   if (!profileIdPattern.test(profileName.value)) {
-    return 'Use lowercase letters and numbers only.'
+    return 'Use lowercase letters, numbers, and underscores only.'
   }
 
   if (PROFILE_IDS_NOT_ALLOWED.includes(profileName.value)) {

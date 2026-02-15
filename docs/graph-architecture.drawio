@@ -1,0 +1,123 @@
+<mxfile host="65bd71144e">
+    <diagram name="Graph Architecture" id="graph-architecture">
+        <mxGraphModel dx="962" dy="782" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" math="0" shadow="0">
+            <root>
+                <mxCell id="0"/>
+                <mxCell id="1" parent="0"/>
+                <mxCell id="start" value="START" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;fontSize=14;fontStyle=1;fontColor=#FFFFFF" parent="1" vertex="1">
+                    <mxGeometry x="480" y="40" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="process_selection" value="Process Selection&#xa;&#xa;Analyze query&#xa;complexity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="460" y="160" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="decision" value="Route by&#xa;Process Type" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="465" y="300" width="150" height="150" as="geometry"/>
+                </mxCell>
+                <mxCell id="simple_process" value="Simple Process&#xa;&#xa;Direct Q&amp;A&#xa;(conversational)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="120" y="335" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="parallel_tasks" value="Parallel Tasks&#xa;&#xa;Execute subtasks&#xa;concurrently" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="460" y="520" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="sequential_tasks" value="Sequential Tasks&#xa;&#xa;Execute subtasks&#xa;in order" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="800" y="335" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="perform_review" value="Perform Review&#xa;&#xa;Analyze task&#xa;results" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="630" y="680" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="generate_summary" value="Generate Summary&#xa;&#xa;Synthesize final&#xa;response" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=13;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="460" y="820" width="160" height="80" as="geometry"/>
+                </mxCell>
+                <mxCell id="end1" value="END" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;fontSize=14;fontStyle=1;fontColor=#FFFFFF" parent="1" vertex="1">
+                    <mxGeometry x="140" y="500" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="end2" value="END" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;fontSize=14;fontStyle=1;fontColor=#FFFFFF" parent="1" vertex="1">
+                    <mxGeometry x="480" y="960" width="120" height="60" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_start" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="start" target="process_selection" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_to_decision" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="process_selection" target="decision" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_simple" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;strokeColor=#82b366" parent="1" source="decision" target="simple_process" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_simple_label" value="simple_process" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1" parent="arrow_simple" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="2" relative="1" as="geometry">
+                        <mxPoint x="-10" y="-10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow_parallel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;strokeColor=#6c8ebf" parent="1" source="decision" target="parallel_tasks" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_parallel_label" value="parallel_tasks" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1" parent="arrow_parallel" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="2" relative="1" as="geometry">
+                        <mxPoint x="15" y="-10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow_sequential" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1;strokeColor=#6c8ebf" parent="1" source="decision" target="sequential_tasks" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_sequential_label" value="sequential_tasks" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=11;fontStyle=1" parent="arrow_sequential" vertex="1" connectable="0">
+                    <mxGeometry x="-0.2" y="2" relative="1" as="geometry">
+                        <mxPoint x="20" y="-10" as="offset"/>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow_simple_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="simple_process" target="end1" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_parallel_review" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="parallel_tasks" target="perform_review" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_sequential_review" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="sequential_tasks" target="perform_review" edge="1">
+                    <mxGeometry relative="1" as="geometry">
+                        <Array as="points">
+                            <mxPoint x="880" y="480"/>
+                            <mxPoint x="880" y="720"/>
+                        </Array>
+                    </mxGeometry>
+                </mxCell>
+                <mxCell id="arrow_review_summary" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="perform_review" target="generate_summary" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="arrow_summary_end" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;endArrow=classic;endFill=1" parent="1" source="generate_summary" target="end2" edge="1">
+                    <mxGeometry relative="1" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend_box" value="" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#000000;dashed=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="40" width="220" height="220" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend_title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=14;fontStyle=1" parent="1" vertex="1">
+                    <mxGeometry x="40" y="45" width="220" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend1" value="Entry/Exit Points" style="ellipse;whiteSpace=wrap;html=1;fillColor=#000000;strokeColor=#000000;fontSize=11;fontColor=#FFFFFF" parent="1" vertex="1">
+                    <mxGeometry x="50" y="75" width="200" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend2" value="Process Selection" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="50" y="115" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend3" value="Simple Process Path" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="50" y="145" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend4" value="Research Tasks" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="50" y="175" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend5" value="Review &amp; Synthesis" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="50" y="205" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="legend6" value="Conditional Routing" style="rhombus;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11" parent="1" vertex="1">
+                    <mxGeometry x="50" y="230" width="200" height="25" as="geometry"/>
+                </mxCell>
+                <mxCell id="path1_label" value="Path 1: Simple" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#82b366" parent="1" vertex="1">
+                    <mxGeometry x="330" y="330" width="120" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="path2_label" value="Path 2: Parallel Research" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#6c8ebf" parent="1" vertex="1">
+                    <mxGeometry x="610" y="460" width="150" height="20" as="geometry"/>
+                </mxCell>
+                <mxCell id="path3_label" value="Path 3: Sequential Research" style="text;html=1;strokeColor=none;fillColor=none;align=right;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=12;fontStyle=1;fontColor=#6c8ebf" parent="1" vertex="1">
+                    <mxGeometry x="610" y="330" width="180" height="20" as="geometry"/>
+                </mxCell>
+            </root>
+        </mxGraphModel>
+    </diagram>
+</mxfile>

@@ -436,17 +436,8 @@ async def stream_graph(
                         f"invocation {invocation_id}"
                     )
                     
-                    graph_state = GraphState(**data[node_name])                    
-
-                    event_data = {
-                        "invocation_id": invocation_id,
-                        "event_type": "node_complete",
-                        "event_value": {
-                            "node": node_name,
-                        },
-                    }
-                    yield f"data: {json.dumps(event_data)}\n\n"
-
+                    graph_state = GraphState(**data[node_name])
+                    
                     try:
                         await invocations_service.update_invocation(
                             profile_id=input_data.profile_id,
@@ -457,7 +448,16 @@ async def stream_graph(
                         logger.warning(
                             f"Failed to update invocation in database: {str(e)}"
                         )
-                        raise
+                        raise                    
+
+                    event_data = {
+                        "invocation_id": invocation_id,
+                        "event_type": "node_complete",
+                        "event_value": {
+                            "node": node_name,
+                        },
+                    }
+                    yield f"data: {json.dumps(event_data)}\n\n"
 
                 elif mode == "custom":
                     custom_data = data.copy()
@@ -565,7 +565,7 @@ async def stream_graph(
             raise
 
     finally:
-        # Delete deleting any pending stop request for this invocation
+        # Delete any pending stop request for this invocation
 
         try:
             deleted_stop_req = await invocations_service.delete_stop_request(

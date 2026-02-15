@@ -190,7 +190,7 @@
 
       <CollapsibleSection
         v-if="content.final_result"
-        title="Final Summary"
+        title="Final summary"
         :defaultExpanded="true"
         :markdownBackground="true"
       >
