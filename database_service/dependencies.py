@@ -1,3 +1,5 @@
+from fastapi import HTTPException
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
@@ -36,6 +38,8 @@ def get_db():
     db = SessionLocal()
     try:
         yield db
+    except HTTPException:        
+        raise
     except Exception as e:
         logger.error(f"Database session error: {e}")        
         raise
