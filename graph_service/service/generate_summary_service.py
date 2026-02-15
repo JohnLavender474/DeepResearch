@@ -11,7 +11,6 @@ from model.generate_summary import (
     GenerateSummaryInput,
     GenerateSummaryOutput,
 )
-from model.task import TaskResult
 from utils.prompt_loader import load_prompt
 from utils.copy_messages import copy_messages
 
@@ -32,7 +31,7 @@ async def execute_generate_summary(
         indent=2,
     )
 
-    content = (
+    content_to_summarize = (
         f"## Task Results\n\n{task_entries_json}\n\n"
         f"## Review\n\n{input_data.review}"
     )
@@ -44,14 +43,16 @@ async def execute_generate_summary(
         SystemMessage(content=summary_prompt),
     )
     messages.append(
-        HumanMessage(content=content),
+        HumanMessage(content=content_to_summarize),
     )
 
-    summary_response = await llm_client.ainvoke(
-        input=messages,
-        output_type=TaskResult,
+    summary_response = await llm_client.ainvoke(input=messages)
+    summary_content = (
+        summary_response.content 
+        if hasattr(summary_response, "content") 
+        else str(summary_response)
     )
 
     logger.debug("Summary generation completed")
 
-    return GenerateSummaryOutput(summary=summary_response.result)
+    return GenerateSummaryOutput(summary=summary_content)

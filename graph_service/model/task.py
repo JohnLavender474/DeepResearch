@@ -11,7 +11,6 @@ class TaskDecomposition(BaseModel):
 class TaskResult(BaseModel):
     result: str
     reasoning: str
-    citations: list[Citation] = []
 
 
 class TaskEntry(BaseModel):
