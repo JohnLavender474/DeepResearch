@@ -72,22 +72,7 @@
             >
               <span class="toggle-thumb" />
             </button>
-          </div>
-
-          <div class="config-toggle-row">
-            <span>Allow web search (reserved for future backend wiring)</span>
-            <button
-              type="button"
-              class="toggle-switch"
-              :class="{ active: allowWebSearch }"
-              :disabled="disabled"
-              role="switch"
-              :aria-checked="allowWebSearch"
-              @click="emit('update:allowWebSearch', !allowWebSearch)"
-            >
-              <span class="toggle-thumb" />
-            </button>
-          </div>
+          </div>          
         </div>
       </div>
 

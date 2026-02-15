@@ -1,7 +1,7 @@
 import uuid
 import logging
 
-from typing import Generator
+from typing import Any, Generator
 
 from pypdf import PdfReader
 from qdrant_client.models import PointStruct
@@ -34,7 +34,7 @@ class DocumentProcessor:
             
             current_chunk_words = []
             current_size = 0
-            current_page = None
+            current_page = -1
             
             for page_num, page in enumerate(reader.pages, start=1):
                 text = page.extract_text()
@@ -110,7 +110,7 @@ class DocumentProcessor:
         file_path: str,
         filename: str,
         chunk_size: int = 2000,
-        custom_metadata: dict[str, any] = {}
+        custom_metadata: dict[str, Any] = {}
     ) -> Generator[PointStruct, None, None]:
         logger.info(f"Processing document: {filename}")
         

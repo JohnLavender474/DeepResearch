@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from model.citation import Citation
 from llm.llm_client import LLMClient
 from model.simple_process import (
     SimpleProcessInput,
@@ -18,6 +19,7 @@ async def execute_simple_process(
     task_execution_prompt = load_prompt(
         "task_execution.md",
         args={
+            "task": input_data.query,
             "current_date": current_date,      
         },
     )
@@ -31,7 +33,16 @@ async def execute_simple_process(
         chat_history=input_data.chat_history,
     )
 
+    citations: list[Citation] = []
+    result: str = ""
+
+    if not task_entry.success:
+        result = "Task execution failed."
+    else:
+        result = task_entry.result or "No result returned."
+        citations = task_entry.citations
+
     return SimpleProcessOutput(
-        result=task_entry.result,
-        citations=task_entry.citations,
+        result=result,
+        citations=citations,
     )

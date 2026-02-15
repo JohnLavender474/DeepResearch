@@ -13,8 +13,7 @@ export interface GraphInput {
   execution_config?: {
     process_override?: string
     model_selection?: string
-    allow_general_knowledge_fallback?: boolean
-    allow_web_search?: boolean
+    allow_general_knowledge_fallback?: boolean    
     temperature?: number
     reasoning_level?: string
   }

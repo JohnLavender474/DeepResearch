@@ -89,7 +89,7 @@ async def _search_documents(
         raise
 
 
-def _format_document_context(
+def _format_context(
     search_query: str,
     documents: list[SearchResult],
     chat_history: Optional[list[BaseMessage]] = None,
@@ -98,25 +98,24 @@ def _format_document_context(
     context_parts = []
 
     if chat_history:
-        context_parts.append("## Prior Context")
-        for msg in chat_history:
-            if isinstance(msg, HumanMessage):
-                context_parts.append(msg.content)
-        context_parts.append("")
+        context_parts.append("## Chat History Context")
+        for msg in chat_history:            
+            context_parts.append(f"\t{msg.type}: {msg.content}")
+        context_parts.append("\n---\n")
 
+    context_parts.append("## Search Query Context")
+    context_parts.append(f"Search query used for retrieval: {search_query}")
+    context_parts.append("\n---\n")
+
+    context_parts.append("## Document Context")    
     if not documents:
-        logger.debug(f"No documents found for search query: {search_query}")
-        context_parts.append(
-            f"No documents found for search query: {search_query}"
-        )
-    else:
-        context_parts.append(f"Based on search results for: {search_query}")
-        context_parts.append("")
+        logger.warning(f"No documents found relevant to the search query")
+        context_parts.append(f"No documents found for the search query")
+    else:                
         context_parts.append("Retrieved documents:")
-
-        for i, doc in enumerate(documents, 1):
+        for i, doc in enumerate(documents):
             content = doc.content_summary or doc.metadata.content
-            context_parts.append(f"{i}. {content}")
+            context_parts.append(f"\t{i}. {content}")
 
     return "\n".join(context_parts)
 
@@ -131,8 +130,8 @@ def _extract_citations(
 
     for doc in documents:
         filename = doc.metadata.source_name
-        page_number = doc.metadata.page_number
-        chunk_index = doc.metadata.chunk_index
+        page_number = doc.metadata.page_number or -1
+        chunk_index = doc.metadata.chunk_index or -1
         content = doc.metadata.content
         score = doc.score
         content_summary = doc.content_summary
@@ -228,7 +227,7 @@ async def _summarize_chunk(
     return summary_response
 
 
-async def _attach_summarization_to_doc(
+async def _attach_content_summary_to_doc(
     task: str,
     document: SearchResult,
     llm_client: LLMClient,
@@ -264,7 +263,6 @@ async def execute_task(
     allow_general_knowledge = (
         execution_config.allow_general_knowledge
     )
-    allow_web_search = execution_config.allow_web_search
 
     try:
         search_query = await _generate_search_query(
@@ -284,7 +282,7 @@ async def execute_task(
 
         if documents:
             await asyncio.gather(*[
-                _attach_summarization_to_doc(
+                _attach_content_summary_to_doc(
                     task,
                     doc,
                     llm_client=llm_client,
@@ -313,7 +311,7 @@ async def execute_task(
 
             citations = []
 
-        document_context = _format_document_context(
+        context = _format_context(
             search_query,
             documents,
             chat_history,
@@ -325,8 +323,8 @@ async def execute_task(
 
         system_message_str = (
             f"{formatted_prompt}\n\n"
-            f"## Document Context\n\n"
-            f"{document_context}"
+            f"# Context\n\n"
+            f"{context}"
         )
 
         if not documents:
@@ -336,11 +334,7 @@ async def execute_task(
                 "no indexed sources were available."
             )
 
-            if allow_web_search:
-                system_message_str += (
-                    " Web search is enabled in config, but no external web search "
-                    "tool is wired in this execution path yet."
-                )
+        logger.debug(f"Constructed system message for task execution:\n{system_message_str}")
 
         if chat_history:
             chat_history_str = "\n".join(

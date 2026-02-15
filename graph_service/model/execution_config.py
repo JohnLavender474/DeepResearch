@@ -10,7 +10,6 @@ class ExecutionConfig(BaseModel):
     process_override: Optional[ProcessType] = None
     model_selection: Optional[ModelType] = None
     allow_general_knowledge: bool = True
-    allow_web_search: bool = False
     temperature: Optional[float] = None
     reasoning_level: Optional[str] = None
 

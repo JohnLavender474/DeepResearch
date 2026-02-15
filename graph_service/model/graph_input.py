@@ -10,6 +10,4 @@ class GraphInput(BaseModel):
     user_query: str
     profile_id: str
     messages: list[RawChatMessage] = []
-    custom_start_node: Optional[str] = None
-    process_override: Optional[ProcessType] = None
     execution_config: Optional[ExecutionConfig] = None

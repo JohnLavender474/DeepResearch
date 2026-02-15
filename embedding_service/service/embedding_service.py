@@ -11,13 +11,16 @@ from model.document_insertion import TextInsertion
 logger = logging.getLogger(__name__)
 
 
+DEFAULT_EMBEDDING_DIMENSION = 768
+
+
 class EmbeddingService:
 
     def __init__(self, model_name: str):
         logger.info(f"Initializing EmbeddingService with model: {model_name}")
         self.model_name = model_name
         self.model = SentenceTransformer(model_name)
-        self.dim = self.model.get_sentence_embedding_dimension()
+        self.dim = self.model.get_sentence_embedding_dimension() or DEFAULT_EMBEDDING_DIMENSION
         logger.info(f"EmbeddingService initialized, embedding dimension: {self.dim}")
 
 

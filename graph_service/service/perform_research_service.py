@@ -82,20 +82,25 @@ async def execute_tasks_in_parallel(
         input_data, 
         execution_type="parallel",
         llm_client=llm_client,
-    )
-
-    current_date = datetime.now().strftime("%Y-%m-%d")
-
-    task_execution_prompt = load_prompt(
-        "task_execution.md",
-        args={
-            "current_date": current_date,      
-        },
-    )
+    )    
 
     async def _execute_task_with_message_history(
         task: str,
     ) -> TaskEntry:
+        logger.debug(
+            f"Executing task in parallel: {task}"
+        )
+
+        current_date = datetime.now().strftime("%Y-%m-%d")    
+
+        task_execution_prompt = load_prompt(
+            "task_execution.md",
+            args={        
+                "task": task,  
+                "current_date": current_date,      
+            },
+        )
+        
         return await execute_task(
             task=task,
             prompt=task_execution_prompt,
@@ -144,26 +149,28 @@ async def execute_tasks_in_sequence(
         llm_client=llm_client,
     )
 
-    current_date = datetime.now().strftime("%Y-%m-%d")
-
-    task_execution_prompt = load_prompt(
-        "task_execution.md",
-        args={
-            "current_date": current_date,      
-        },
-    )
-
     task_entries: list[TaskEntry] = []
 
     chat_history: list[BaseMessage] = copy_messages(
         input_data.chat_history
     ) if input_data.chat_history else []
 
-    for task in decomposition.tasks:
+    for task in decomposition.tasks:        
         logger.debug(
             f"Executing task sequentially with " 
             f"{len(chat_history)} messages in chat history"
         )
+
+        current_date = datetime.now().strftime("%Y-%m-%d")
+
+        task_execution_prompt = load_prompt(
+            "task_execution.md",
+            args={
+                "task": task,
+                "current_date": current_date,      
+            },
+        )
+
         task_entry = await execute_task(
             task=task,
             chat_history=chat_history,

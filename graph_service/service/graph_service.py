@@ -196,9 +196,7 @@ async def _prepare_graph_messages(
     return graph_state_messages
 
 
-async def stream_graph(
-    input_data: GraphInput,
-):
+async def stream_graph(input_data: GraphInput):
     invocation_id = str(uuid.uuid4())
 
     logger.debug(f"Graph invocation id: {invocation_id}")
@@ -245,12 +243,6 @@ async def stream_graph(
             else ExecutionConfig()
         )
 
-        if not execution_config.process_override and input_data.process_override:
-            execution_config.process_override = input_data.process_override
-
-        if not execution_config.model_selection and input_data.model_selection:
-            execution_config.model_selection = input_data.model_selection
-
         # Prepare graph messages to be included in the graph invocation
 
         graph_state_messages = await _prepare_graph_messages(
@@ -266,7 +258,6 @@ async def stream_graph(
             user_query=input_data.user_query,
             profile_id=input_data.profile_id,
             messages=graph_state_messages,
-            model_selection=execution_config.model_selection,
             execution_config=execution_config,
         )
 
@@ -295,9 +286,7 @@ async def stream_graph(
         # the value is `None`, then the graph will use a default
         # start node.
         
-        graph: CompiledStateGraph = build_graph(
-            start_node=input_data.custom_start_node
-        )
+        graph: CompiledStateGraph = build_graph()
 
         graph_stream = graph.astream(
             input=graph_state,
@@ -521,7 +510,7 @@ async def stream_graph(
             "invocation_id": invocation_id,
             "event_type": "stopped",
             "event_value": {
-                "message": str(e.message),
+                "message": str(e),
             },
         }
         yield f"data: {json.dumps(event_data)}\n\n"
@@ -547,7 +536,7 @@ async def stream_graph(
             "invocation_id": invocation_id,
             "event_type": "error",
             "event_value": {                
-                "error": str(e.message),
+                "error": str(e),
             },
         }
         yield f"data: {json.dumps(event_data)}\n\n"

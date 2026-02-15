@@ -194,6 +194,37 @@ async def get_documents(
         )
 
 
+@router.get("/collections/{collection_name}/documents/list_unique_sources")
+async def get_document_by_source(
+    collection_name: str,
+    request: Request
+):
+    try:
+        response = await get_documents(collection_name, request)
+        
+        documents = response["documents"]
+        
+        unique_sources = set(
+            doc["payload"].get("source_name") 
+            for doc in documents 
+            if "source_name" in doc["payload"]
+        )
+
+        return {
+            "collection": collection_name,
+            "unique_sources": list(unique_sources),
+            "count": len(unique_sources)
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to retrieve unique sources: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve unique sources: {e}"
+        )
+
+
 @router.post("/collections/{collection_name}/upload")
 async def upload_document(
     request: Request,
@@ -209,6 +240,15 @@ async def upload_document(
         request.app.state.document_processor
     )
 
+    file_name = file.filename
+
+    if not file_name:
+        logger.error("Uploaded file is missing a filename")
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file must have a filename"
+        )
+
     if not vector_client.collection_exists(collection_name):
         logger.error(f"Collection '{collection_name}' does not exist")
         raise HTTPException(
@@ -218,24 +258,24 @@ async def upload_document(
 
     existing_count = vector_client.count_points_by_source(
         collection_name,
-        file.filename
+        file_name
     )
     if existing_count > 0:
         logger.warning(
-            f"Document '{file.filename}' already exists in "
+            f"Document '{file_name}' already exists in "
             f"collection '{collection_name}'"
         )
         raise HTTPException(
             status_code=409,
             detail=(
-                f"Document '{file.filename}' already exists in "
+                f"Document '{file_name}' already exists in "
                 f"collection '{collection_name}'. Use PUT to replace it."
             )
         )
 
     with tempfile.NamedTemporaryFile(
         delete=False,
-        suffix=os.path.splitext(file.filename)[1]
+        suffix=os.path.splitext(file_name)[1]
     ) as tmp_file:
         tmp_path = tmp_file.name
         total_size = 0
@@ -256,7 +296,7 @@ async def upload_document(
             tmp_file.write(file_chunk)
 
     try:
-        logger.debug(f"Processing document: {file.filename}")
+        logger.debug(f"Processing document: {file_name}")
         
         batch_size = 64
         batch = []
@@ -265,7 +305,7 @@ async def upload_document(
         
         for point in document_processor.process_document(
             file_path=tmp_path,
-            filename=file.filename,
+            filename=file_name,
             custom_metadata=custom_metadata
         ):
             batch.append(point)
@@ -288,18 +328,18 @@ async def upload_document(
                 await client.put(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
-                        "filename": file.filename,
+                        "filename": file_name,
                         "points": json.dumps(all_points_serialized),
                     },
                 )
                 logger.info(
-                    f"Recorded embedded document '{file.filename}' "
+                    f"Recorded embedded document '{file_name}' "
                     f"in database service"
                 )
             except httpx.HTTPStatusError as http_exc:
                 if http_exc.response.status_code == 409:
                     logger.warning(
-                        f"Embedded document '{file.filename}' already exists "
+                        f"Embedded document '{file_name}' already exists "
                         f"in database service"
                     )
                 else:
@@ -438,6 +478,15 @@ async def replace_document(
         request.app.state.document_processor
     )
 
+    file_name = file.filename
+
+    if not file_name:
+        logger.error("Uploaded file is missing a filename")
+        raise HTTPException(
+            status_code=400,
+            detail="Uploaded file must have a filename"
+        )
+
     try:
         if not vector_client.collection_exists(collection_name):
             logger.error(f"Collection '{collection_name}' does not exist")
@@ -446,32 +495,32 @@ async def replace_document(
                 detail=f"Collection '{collection_name}' does not exist"
             )
 
-        logger.debug(f"Checking if document '{file.filename}' exists")
+        logger.debug(f"Checking if document '{file_name}' exists")
         existing_count = vector_client.count_points_by_source(
             collection_name,
-            file.filename
+            file_name
         )
 
         if existing_count == 0:
             logger.warning(
-                f"No existing chunks found for '{file.filename}' "
+                f"No existing chunks found for '{file_name}' "
                 f"in collection '{collection_name}'"
             )
             raise HTTPException(
                 status_code=404,
                 detail=(
-                    f"No existing chunks found for '{file.filename}'. "
+                    f"No existing chunks found for '{file_name}'. "
                     f"Use POST to upload a new document."
                 )
             )
 
         logger.info(
-            f"Found {existing_count} existing chunks for '{file.filename}', "
+            f"Found {existing_count} existing chunks for '{file_name}', "
             f"deleting them"
         )
         deleted_count = vector_client.delete_points_by_source(
             collection_name,
-            file.filename
+            file_name
         )
         logger.info(f"Deleted {deleted_count} chunks")
     except HTTPException:
@@ -485,7 +534,7 @@ async def replace_document(
 
     with tempfile.NamedTemporaryFile(
         delete=False,
-        suffix=os.path.splitext(file.filename)[1]
+        suffix=os.path.splitext(file_name)[1]
     ) as tmp_file:
         tmp_path = tmp_file.name
         total_size = 0
@@ -506,7 +555,7 @@ async def replace_document(
             tmp_file.write(file_chunk)
 
     try:
-        logger.debug(f"Processing document: {file.filename}")
+        logger.debug(f"Processing document: {file_name}")
         
         batch_size = 64
         batch = []
@@ -515,7 +564,7 @@ async def replace_document(
         
         for point in document_processor.process_document(
             file_path=tmp_path,
-            filename=file.filename,
+            filename=file_name,
             custom_metadata=custom_metadata
         ):
             batch.append(point)
@@ -538,7 +587,7 @@ async def replace_document(
                 await client.put(
                     f"{DATABASE_SERVICE_URL}/documents-embedded",
                     json={
-                        "filename": file.filename,
+                        "filename": file_name,
                         "points": json.dumps(all_points_serialized),
                     },
                 )
@@ -550,19 +599,18 @@ async def replace_document(
                 )
 
         logger.info(
-            f"Document '{file.filename}' replaced in "
+            f"Document '{file_name}' replaced in "
             f"collection '{collection_name}'"
         )
         return {
             "status": "ok",
-            "filename": file.filename,
+            "filename": file_name,
             "chunks_replaced": existing_count,
             "chunks_indexed": total_chunks
         }
-
     except Exception as e:
-        logger.error(f"Failed to replace document '{file.filename}': {e}")
-        raise
+        logger.error(f"Failed to replace document '{file_name}': {e}")
+        raise    
     finally:
         os.unlink(tmp_path)
 

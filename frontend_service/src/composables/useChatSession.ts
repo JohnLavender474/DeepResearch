@@ -469,9 +469,7 @@ export function useChatSession() {
                 process_override: request.executionConfig.processOverride,
                 model_selection: request.executionConfig.modelSelection,
                 allow_general_knowledge_fallback:
-                  request.executionConfig.allowGeneralKnowledgeFallback,
-                allow_web_search:
-                  request.executionConfig.allowWebSearch,
+                  request.executionConfig.allowGeneralKnowledgeFallback,                
                 temperature: request.executionConfig.temperature,
                 reasoning_level: request.executionConfig.reasoningLevel,
               }
