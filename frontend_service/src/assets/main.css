@@ -41,6 +41,13 @@ body {
   font-weight: 600;
 }
 
+.summary-content p > strong:first-child:last-child {
+  display: block;
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 1rem 0 0.5rem 0;
+}
+
 .markdown-content ul,
 .markdown-content ol {
   margin: 0.75rem 0;
