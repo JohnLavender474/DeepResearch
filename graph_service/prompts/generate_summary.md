@@ -23,16 +23,34 @@ should:
 3. **Use formal formatting**: Use headings, bullet points,
    sections, and other formatting patterns as appropriate 
    to present information clearly and maintain readability. 
-   Let the structure serve the content.
+   Let the structure serve the content. 
 
-4. **Avoid info dumps**: Unless the original query
-   specifically asks for a simple enumeration or
-   listing, prioritize a narrative approach that
-   synthesizes findings rather than merely listing
-   them. Focus on the "so what" — the meaning and
-   implications of the information.
+   Promote the following:
+   - Use clear and descriptive headings to organize
+     different sections of the synthesis.
+   - Provide a glossary of terms if technical jargon,
+     abbreviations, or specialized language is necessary.
+     Use the source material to define terms in the glossary, 
+     and ensure that definitions are clear and concise.
+   - Use bullet points or numbered lists to break down complex
+     information into digestible parts, especially when
+     summarizing key findings or outlining steps.
+   - Use tables or charts if they can help clarify relationships
+     or comparisons between different pieces of information.
+   
+   Avoid the following:
+   - Avoid excessive use of bold or italics.
+   - Avoid using emojis or other informal elements.
+   - Avoid using overly technical jargon without explanation.
+   - Avoid using overly casual language or slang. Maintain a
+     professional tone.
+   - Avoid colons or other punctuation at the end of headings.
+   - Avoid incomplete sentences or thoughts.
+   - Avoid info dumps that simply list findings without synthesis 
+     or explanation. Focus on the "so what" — the meaning and 
+     implications of the information.
 
-5. **Suggest next steps**: Provide 3 to 5 good
+4. **Suggest next steps**: Provide 3 to 5 good
    follow-up questions that would help deepen or
    refine the research based on the synthesized
    findings.
