@@ -20,17 +20,16 @@ should:
    answering the original query? Why do certain
    connections matter?
 
-3. **Use varied formatting**: Mix natural language
-   narrative with bullet points, sections, or other
-   formatting patterns as appropriate to present
-   information clearly and maintain readability. Let
-   the structure serve the content.
+3. **Use formal formatting**: Use headings, bullet points,
+   sections, and other formatting patterns as appropriate 
+   to present information clearly and maintain readability. 
+   Let the structure serve the content.
 
 4. **Avoid info dumps**: Unless the original query
    specifically asks for a simple enumeration or
    listing, prioritize a narrative approach that
    synthesizes findings rather than merely listing
-   them. Focus on the "so what"—the meaning and
+   them. Focus on the "so what" — the meaning and
    implications of the information.
 
 5. **Suggest next steps**: Provide 3 to 5 good
