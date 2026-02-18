@@ -64,15 +64,15 @@
         :is-open="isConfigModalOpen"
         :disabled="isInputDisabled"
         :process-types="processTypes"
-        :model-types="modelTypes"
+        :model-types="availableModelTypes"
         :process-type="selectedProcessType"
         :model-type="selectedModelType"
-        :allow-general-knowledge-fallback="allowGeneralKnowledgeFallback"
+        :allow-general-knowledge-fallback="allowGeneralKnowledge"
         :allow-web-search="allowWebSearch"
         @close="isConfigModalOpen = false"
         @update:process-type="selectedProcessType = $event"
         @update:model-type="selectedModelType = $event"
-        @update:allow-general-knowledge-fallback="allowGeneralKnowledgeFallback = $event"
+        @update:allow-general-knowledge-fallback="allowGeneralKnowledge = $event"
         @update:allow-web-search="allowWebSearch = $event"
       />
     </form>
@@ -85,6 +85,7 @@ import { computed, ref } from 'vue'
 import ExecutionConfigModal from '@/components/modals/ExecutionConfigModal.vue'
 import type { ChatStatus } from '@/model/chatStatus'
 import type UserQueryRequest from '@/model/userQueryRequest'
+import { isDummyAiAllowed } from '@/config'
 
 interface UserInputProps {
   chatStatus: ChatStatus
@@ -105,7 +106,7 @@ const emit = defineEmits<{
 const query = ref('')
 const selectedProcessType = ref('')
 const selectedModelType = ref('')
-const allowGeneralKnowledgeFallback = ref(true)
+const allowGeneralKnowledge = ref(true)
 const allowWebSearch = ref(false)
 const isConfigModalOpen = ref(false)
 const isCollapsed = ref(false)
@@ -113,6 +114,14 @@ const textareaRef = ref<HTMLTextAreaElement | null>(null)
 
 const isInputDisabled = computed(() => props.chatStatus !== 'idle')
 const isValidInput = computed(() => query.value.trim().length > 0)
+
+const availableModelTypes = computed(() => {
+  if (isDummyAiAllowed()) {
+    return props.modelTypes
+  }
+
+  return props.modelTypes.filter((modelType) => modelType !== 'dummy')
+})
 
 const submitButtonText = computed(() => {
   if (!query.value.trim()) {
@@ -129,12 +138,17 @@ const submitButtonText = computed(() => {
 
 const onSubmit = () => {
   if (query.value.trim() && !isInputDisabled.value) {
+    const modelSelection =
+      selectedModelType.value === 'dummy' && !isDummyAiAllowed()
+        ? undefined
+        : selectedModelType.value || undefined
+
     emit('submit', {
       query: query.value,
       executionConfig: {
         processOverride: selectedProcessType.value || undefined,
-        modelSelection: selectedModelType.value || undefined,
-        allowGeneralKnowledgeFallback: allowGeneralKnowledgeFallback.value,
+        modelSelection,
+        allowGeneralKnowledgeFallback: allowGeneralKnowledge.value,
         allowWebSearch: allowWebSearch.value,
       },
     })
@@ -158,7 +172,7 @@ const clear = () => {
 const resetExecutionConfig = () => {
   selectedProcessType.value = ''
   selectedModelType.value = ''
-  allowGeneralKnowledgeFallback.value = true
+  allowGeneralKnowledge.value = true
   allowWebSearch.value = false
 }
 

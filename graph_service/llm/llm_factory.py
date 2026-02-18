@@ -19,7 +19,12 @@ def get_llm(
 
         return ClaudeClientWrapper()
 
+    if selected_model == "dummy":
+        from llm.dummy_ai_client import DummyAIClientWrapper
+
+        return DummyAIClientWrapper()
+
     raise ValueError(
         f"Unknown model selection: '{selected_model}'. "
-        f"Supported values: 'claude', 'openai'."
+        f"Supported values: 'claude', 'openai', 'dummy'."
     )

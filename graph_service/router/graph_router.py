@@ -64,35 +64,19 @@ async def invoke_graph(
 
 
 @router.post("/{invocation_id}/stop")
-async def stop_invocation(
-    invocation_id: str,
-    profile_id: str = Query(...),
-):
+async def stop_invocation(invocation_id: str):
     logger.info(
         f"Stop request received for invocation {invocation_id}"
     )
 
     try:
-        await invocations_service.update_invocation(
-            profile_id=profile_id,
-            invocation_id=invocation_id,
-            status="stop_requested",
-        )
-
-        logger.info(
-            f"Invocation {invocation_id} status set to stop_requested"
-        )
-    except Exception as e:
-        logger.error(
-            f"Failed to update invocation status to "
-            f"stop_requested: {e}"
-        )
-
-    try:
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 f"{DATABASE_SERVICE_URL}"
-                f"/invocation-stop-requests/{invocation_id}"
+                f"/invocation-stop-requests",
+                json={
+                    "invocation_id": invocation_id,
+                },
             )
 
             if response.status_code == 404:

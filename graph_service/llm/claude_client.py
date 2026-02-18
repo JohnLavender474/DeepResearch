@@ -2,6 +2,7 @@ from typing import Optional, Type, TypeVar, Any
 
 from langchain_anthropic import ChatAnthropic
 from langchain_core.messages import BaseMessage
+from pydantic import BaseModel
 
 from config import CLAUDE_API_KEY
 from llm.llm_client import LLMClient
@@ -12,7 +13,7 @@ CLAUDE_TEMPERATURE = 0.5
 CLAUDE_MAX_TOKENS = 64000
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 class ClaudeClientWrapper(LLMClient):

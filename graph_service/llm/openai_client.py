@@ -2,6 +2,7 @@ from typing import Optional, Type, TypeVar, Any
 
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import BaseMessage
+from pydantic import BaseModel
 
 from config import OPENAI_API_KEY, OPENAI_MODEL
 from llm.llm_client import LLMClient
@@ -10,7 +11,7 @@ from llm.llm_client import LLMClient
 OPENAI_MAX_TOKENS = 16000
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 class OpenAIClientWrapper(LLMClient):

@@ -48,11 +48,9 @@ export async function fetchModels(): Promise<string[]> {
 
 export async function stopInvocation(
   invocationId: string,
-  profileId: string,
 ): Promise<void> {
   const response = await fetch(
-    `/api/graph/${invocationId}/stop`
-    + `?profile_id=${encodeURIComponent(profileId)}`,
+    `/api/graph/${invocationId}/stop`,
     { method: 'POST' },
   )
 

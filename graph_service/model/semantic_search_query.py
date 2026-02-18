@@ -1,5 +1,5 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SemanticSearchQuery(BaseModel):
-    query: str
+    query: str = Field(default="")

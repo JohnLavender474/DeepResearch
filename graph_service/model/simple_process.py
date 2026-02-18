@@ -1,6 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from langchain_core.messages import BaseMessage
 
 from model.citation import Citation
@@ -8,12 +8,14 @@ from model.execution_config import ExecutionConfig
 
 
 class SimpleProcessInput(BaseModel):
-    query: str
-    collection_name: str
-    execution_config: ExecutionConfig = ExecutionConfig.default()
-    chat_history: Optional[list[BaseMessage]] = None
+    query: str = Field(default="")
+    collection_name: str = Field(default="")
+    execution_config: ExecutionConfig = Field(
+        default_factory=ExecutionConfig.default,
+    )
+    chat_history: Optional[list[BaseMessage]] = Field(default=None)
 
 
 class SimpleProcessOutput(BaseModel):
-    result: str
-    citations: list[Citation] = []
+    result: str = Field(default="")
+    citations: list[Citation] = Field(default_factory=list)

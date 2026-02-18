@@ -1,6 +1,6 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class DocumentSummary(BaseModel):
-    summary: str
-    relevant: bool
+    summary: str = Field(default="")
+    relevant: bool = Field(default=False)

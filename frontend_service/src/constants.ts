@@ -1,0 +1,1 @@
+export const DEBUG_ALLOW_DUMMY_AI_KEY = 'deepresearch.debug.allow_dummy_ai';

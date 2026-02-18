@@ -30,7 +30,7 @@ async def execute_generate_summary(
     if stream_writer:
         stream_writer({
             "type": "blurb",
-            "content": "Generating research final result...",
+            "content": "Generating summary of all research findings...",
         })
     
     summary_prompt = load_prompt("generate_summary.md")
@@ -67,7 +67,7 @@ async def execute_generate_summary(
     if stream_writer:
         stream_writer({
             "type": "blurb",
-            "content": "Research final result generation completed.",
+            "content": "Summary of all research findings completed.",
         })
 
     return GenerateSummaryOutput(summary=summary_content)

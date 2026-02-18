@@ -30,7 +30,7 @@ async def execute_perform_review(
     if stream_writer:
         stream_writer({
             "type": "blurb",
-            "message": "Reviewing task results..."
+            "message": "Reviewing research so far..."
         })
 
     review_prompt = load_prompt("perform_review.md")
@@ -56,7 +56,7 @@ async def execute_perform_review(
 
     review_content = review_response.content
 
-    logger.debug("Task review completed")
+    logger.debug("Research review completed")
     
     return PerformReviewOutput(review=review_content)
 

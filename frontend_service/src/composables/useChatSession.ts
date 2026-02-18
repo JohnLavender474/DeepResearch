@@ -19,9 +19,29 @@ import {
 } from "@/services/graphService";
 import { fetchInvocation } from "@/services/invocationService";
 import type { InvocationStatus } from "@/model/aiMessageContent";
+import { isDummyAiAllowed } from "@/config";
 
 
 const INVOCATION_POLL_INTERVAL = 3000;
+
+const resolveModelSelection = (
+  modelSelection: string | undefined,
+): string | undefined => {
+  if (modelSelection !== 'dummy') {
+    return modelSelection;
+  }
+
+  if (isDummyAiAllowed()) {
+    return modelSelection;
+  }
+
+  console.error(
+    "Model selection 'dummy' is not allowed. To enable, " + 
+    "set localStorage key 'debug.allowDummyAi' to 'true'."
+  );
+
+  return undefined;
+};
 
 export function useChatSession() {
   const messages = ref<Map<string, ChatMessageViewModel>>(new Map());
@@ -124,10 +144,11 @@ export function useChatSession() {
 
   const stopCurrentInvocation = async () => {
     const invocationId = activeInvocationId.value;
-    const profileId = currentProfileId.value;
+    
     const messageId = activeAiMessageId.value;
 
-    if (!invocationId || !profileId) {
+    if (!invocationId) {
+      console.warn("No active invocation to stop");
       return;
     }
 
@@ -157,10 +178,7 @@ export function useChatSession() {
     chatStatus.value = 'idle';
 
     try {
-      await stopInvocation(
-        invocationId,
-        profileId,
-      );
+      await stopInvocation(invocationId);
 
       console.log(
         `Stop request sent for invocation ${invocationId}`,
@@ -488,7 +506,9 @@ export function useChatSession() {
           execution_config: request.executionConfig
             ? {
                 process_override: request.executionConfig.processOverride,
-                model_selection: request.executionConfig.modelSelection,
+                model_selection: resolveModelSelection(
+                  request.executionConfig.modelSelection,
+                ),
                 allow_general_knowledge_fallback:
                   request.executionConfig.allowGeneralKnowledgeFallback,                
                 temperature: request.executionConfig.temperature,

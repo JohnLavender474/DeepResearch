@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional
 
 from model.process_selection import ProcessType
@@ -7,7 +7,7 @@ from model.execution_config import ExecutionConfig
 
 
 class GraphInput(BaseModel):
-    user_query: str
-    profile_id: str
-    messages: list[RawChatMessage] = []
-    execution_config: Optional[ExecutionConfig] = None
+    user_query: str = Field(default="")
+    profile_id: str = Field(default="")
+    messages: list[RawChatMessage] = Field(default_factory=list)
+    execution_config: Optional[ExecutionConfig] = Field(default=None)

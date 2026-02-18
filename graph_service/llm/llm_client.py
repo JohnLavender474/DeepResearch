@@ -1,10 +1,11 @@
+from pydantic import BaseModel
 from abc import ABC, abstractmethod
 from typing import overload, Optional, Type, TypeVar, Any
 
 from langchain_core.messages import BaseMessage
 
 
-T = TypeVar("T")
+T = TypeVar("T", bound=BaseModel)
 
 
 class LLMClient(ABC):
