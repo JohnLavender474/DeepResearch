@@ -15,9 +15,10 @@
       >
         {{ statusLabel }}
       </span>
-      <div class="loading-state" v-if="isLoading">
+      <div v-if="isLoading" class="loading-state">
         <div class="spinner"></div>
-        <span>Processing...</span>
+        <span v-if="content.latestBlurb">{{ content.latestBlurb }}</span>
+        <span v-else>Processing...</span>
       </div>
     </div>
 

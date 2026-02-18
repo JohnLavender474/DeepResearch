@@ -453,17 +453,40 @@ async def stream_graph(input_data: GraphInput):
 
                     event_type = custom_data.pop("type", "none")
 
-                    logger.debug(
-                        f"Custom event of type {event_type} in graph invocation "
-                        f"{invocation_id}: {data}"
-                    )
+                    if event_type == "blurb":
+                        logger.debug(
+                            f"Blurb event in graph invocation {invocation_id}: "
+                            f"{custom_data.get('content', '')[:100]}..."
+                        )
 
-                    event_data = {
-                        "invocation_id": invocation_id,
-                        "event_type": event_type,
-                        "event_value": custom_data,
-                    }
-                    yield f"data: {json.dumps(event_data)}\n\n"
+                        graph_state.blurb = custom_data.get("content", "")
+
+                        await invocations_service.update_invocation(
+                            profile_id=input_data.profile_id,
+                            invocation_id=invocation_id,
+                            graph_state=graph_state.model_dump(),
+                        )
+
+                        event_data = {
+                            "invocation_id": invocation_id,
+                            "event_type": "blurb",
+                            "event_value": {
+                                "content": graph_state.blurb,
+                            },
+                        }
+                        yield f"data: {json.dumps(event_data)}\n\n"
+                    else:
+                        logger.debug(
+                            f"Custom event of type {event_type} in graph invocation "
+                            f"{invocation_id}: {data}"
+                        )
+
+                        event_data = {
+                            "invocation_id": invocation_id,
+                            "event_type": event_type,
+                            "event_value": custom_data,
+                        }
+                        yield f"data: {json.dumps(event_data)}\n\n"
 
                 pending_task = None
 

@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from typing import Optional
 
 from langchain_core.messages import (
     AIMessage,
@@ -9,6 +10,7 @@ from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
 )
+from langgraph.types import StreamWriter
 
 from llm.llm_client import LLMClient
 from model.perform_research import (
@@ -71,12 +73,19 @@ async def _decompose_tasks(
 async def execute_tasks_in_parallel(
     input_data: PerformResearchInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
     execution_config: ExecutionConfig = ExecutionConfig.default(),
 ) -> PerformResearchOutput:
     logger.debug(
         f"Starting parallel task execution for query: " 
         f"{input_data.query}"
     )
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Decomposing tasks..."
+        })
 
     decomposition = await _decompose_tasks(
         input_data, 
@@ -112,19 +121,34 @@ async def execute_tasks_in_parallel(
             llm_client=llm_client,
         )
 
-    task_coroutines = [
-        _execute_task_with_message_history(
-            task=task,
+    tasks = [
+        asyncio.create_task(
+            _execute_task_with_message_history(
+                task=task,
+            )
         )
         for task in decomposition.tasks
     ]
 
-    task_entries = await asyncio.gather(
-        *task_coroutines,
-    )
+    task_entries: list[TaskEntry] = []
+
+    for completed_task in asyncio.as_completed(tasks):
+        task_entry = await completed_task
+        task_entries.append(task_entry)
+        
+        if stream_writer:
+            successful_count = sum(1 for e in task_entries if e.success)
+            total_count = len(decomposition.tasks)
+            stream_writer({
+                "type": "blurb",
+                "content": f"Completed {successful_count}/{total_count} parallel tasks"
+            })
+    
+    successful_count = sum(1 for e in task_entries if e.success)
+    
     logger.debug(
         f"All tasks executed. Successful: " 
-        f"{sum(1 for e in task_entries if e.success)}, " 
+        f"{successful_count}, " 
         f"Failed: {sum(1 for e in task_entries if not e.success)}"
     )
 
@@ -136,12 +160,19 @@ async def execute_tasks_in_parallel(
 async def execute_tasks_in_sequence(
     input_data: PerformResearchInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
     execution_config: ExecutionConfig = ExecutionConfig.default(),
 ) -> PerformResearchOutput:
     logger.debug(
         f"Starting sequential task execution for query: " 
         f"{input_data.query}"
     )
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Decomposing tasks..."
+        })
 
     decomposition = await _decompose_tasks(
         input_data, 
@@ -193,8 +224,14 @@ async def execute_tasks_in_sequence(
                 f"Task failed: {task_entry.task}. " 
                 f"Result: {task_entry.result}"
             )
-            # Depending on requirements, could choose to break here or continue with next tasks
-            # For now, we will continue executing remaining tasks
+        
+        if stream_writer:
+            successful_count = sum(1 for e in task_entries if e.success)
+            total_count = len(decomposition.tasks)
+            stream_writer({
+                "type": "blurb",
+                "content": f"Completed {successful_count}/{total_count} sequential tasks"
+            })
 
     logger.debug(
         f"All tasks executed sequentially. " 

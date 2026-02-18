@@ -93,7 +93,7 @@
         <main class="main-section">
           <ChatSection
             ref="chatSectionRef"
-            :messages="messages"
+            :messages="messagesAsArray"
             :chat-status="chatStatus"
             :error="error"
             :profile-id="selectedProfileId"
@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 
 import AddProfileButton from '@/components/AddProfileButton.vue'
 import ChatHistory from '@/components/ChatHistory.vue'
@@ -201,6 +201,10 @@ const {
   stopCurrentInvocation,
   clearChatSession,
 } = useChatSession()
+
+const messagesAsArray = computed(() =>
+  Array.from(messages.value.values())
+)
 
 const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = true

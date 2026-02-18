@@ -1,4 +1,7 @@
+from typing import Optional
+
 from langchain_core.messages import HumanMessage, SystemMessage
+from langgraph.types import StreamWriter
 
 from llm.llm_client import LLMClient
 from model.process_selection import (
@@ -12,6 +15,7 @@ from utils.copy_messages import copy_messages
 async def select_process(
     input_data: ProcessSelectionInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
 ) -> ProcessSelectionOutput:
     system_prompt = load_prompt("process_selection.md")
 

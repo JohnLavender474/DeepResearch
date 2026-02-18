@@ -4,6 +4,7 @@ from typing import Literal, Optional
 
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.state import CompiledStateGraph
+from langgraph.config import get_stream_writer
 
 from model.graph_state import (
     GraphState,
@@ -48,6 +49,9 @@ logger = logging.getLogger(__name__)
 
 async def node_process_selection(state: GraphState) -> GraphState:
     logger.debug("Starting process selection node")
+    
+    stream_writer = get_stream_writer()
+
     input_data = ProcessSelectionInput(
         user_query=state.user_query,
         messages=state.messages,
@@ -63,8 +67,9 @@ async def node_process_selection(state: GraphState) -> GraphState:
     else:
         llm_client = get_llm(state.execution_config.model_selection)
         output = await select_process(
-            input_data,
+            input_data=input_data,
             llm_client=llm_client,
+            stream_writer=stream_writer,
         )
         logger.debug(
             f"Process type selected: {output.process_type}"
@@ -87,6 +92,9 @@ async def node_process_selection(state: GraphState) -> GraphState:
 
 async def node_simple_process(state: GraphState) -> GraphState:
     logger.debug("Starting simple process node")
+
+    stream_writer = get_stream_writer()
+
     input_data = SimpleProcessInput(
         query=state.user_query,
         collection_name=state.profile_id,
@@ -96,8 +104,9 @@ async def node_simple_process(state: GraphState) -> GraphState:
 
     llm_client = get_llm(state.execution_config.model_selection)
     output = await execute_simple_process(
-        input_data,
+        input_data=input_data,
         llm_client=llm_client,
+        stream_writer=stream_writer,
     )
     logger.debug(f"Simple process result: {output.result}")
 
@@ -119,6 +128,8 @@ async def node_parallel_tasks(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting parallel tasks node")
+    stream_writer = get_stream_writer()
+
     input_data = PerformResearchInput(
         query=state.user_query,
         collection_name=state.profile_id,
@@ -128,8 +139,9 @@ async def node_parallel_tasks(
     
     llm_client = get_llm(state.execution_config.model_selection)
     output = await execute_tasks_in_parallel(
-        input_data,
+        input_data=input_data,
         llm_client=llm_client,
+        stream_writer=stream_writer,
     )
     logger.debug(f"Parallel tasks output: {output.model_dump()}")
 
@@ -151,6 +163,8 @@ async def node_sequential_tasks(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting sequential tasks node")
+    stream_writer = get_stream_writer()
+
     input_data = PerformResearchInput(
         query=state.user_query,
         collection_name=state.profile_id,
@@ -159,8 +173,9 @@ async def node_sequential_tasks(
     
     llm_client = get_llm(state.execution_config.model_selection)
     output = await execute_tasks_in_sequence(
-        input_data, 
-        llm_client=llm_client,   
+        input_data=input_data,
+        llm_client=llm_client,
+        stream_writer=stream_writer,
         execution_config=state.execution_config,    
     )
     logger.debug(f"Sequential tasks output: {output.model_dump()}")
@@ -183,6 +198,8 @@ async def node_perform_review(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting perform review node")
+    stream_writer = get_stream_writer()
+
     input_data = PerformReviewInput(
         task_entries=state.task_entries,
         chat_history=state.messages,
@@ -190,8 +207,9 @@ async def node_perform_review(
     
     llm_client = get_llm(state.execution_config.model_selection)
     output = await execute_perform_review(
-        input_data,
+        input_data=input_data,
         llm_client=llm_client,
+        stream_writer=stream_writer,
     )
     logger.debug(f"Review output: {output.model_dump()}")
 
@@ -213,6 +231,8 @@ async def node_generate_summary(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting generate summary node")
+    stream_writer = get_stream_writer()
+
     input_data = GenerateSummaryInput(
         task_entries=state.task_entries,
         review=state.review,
@@ -221,8 +241,9 @@ async def node_generate_summary(
     
     llm_client = get_llm(state.execution_config.model_selection)
     output = await execute_generate_summary(
-        input_data,
+        input_data=input_data,
         llm_client=llm_client,
+        stream_writer=stream_writer,
     )
     logger.debug(f"Summary output: {output.model_dump()}")
 

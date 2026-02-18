@@ -18,38 +18,41 @@ import {
   type SimpleMessage,
 } from "@/services/graphService";
 import { fetchInvocation } from "@/services/invocationService";
+import type { InvocationStatus } from "@/model/aiMessageContent";
 
 
 const INVOCATION_POLL_INTERVAL = 3000;
 
 export function useChatSession() {
-  const messages = ref<ChatMessageViewModel[]>([]);
-  const conversations = ref<Conversation[]>([]);
-
+  const messages = ref<Map<string, ChatMessageViewModel>>(new Map());
   const chatStatus = ref<ChatStatus>('idle');
-  const isLoadingConversations = ref(false);
 
-  const error = ref("");
+  const conversations = ref<Conversation[]>([]);
+  const isLoadingConversations = ref(false);  
 
   const currentConversationId = ref("");
+
   const currentProfileId = ref("");
 
   const activeInvocationId = ref("");
+
   const activeAiMessageId = ref("");
 
-  let pollingIntervalId: number | null = null;
+  const error = ref("");
+
+  let invocationPollingIntervalId: number | null = null;
 
   let currentAbortController: AbortController | null = null;
 
-  const stopPolling = () => {
-    if (pollingIntervalId !== null) {
-      clearInterval(pollingIntervalId);
-      pollingIntervalId = null;
+  const stopPollingForInvocationData = () => {
+    if (invocationPollingIntervalId !== null) {
+      clearInterval(invocationPollingIntervalId);
+      invocationPollingIntervalId = null;
       console.log("Stopped polling for invocation status");
     }
   };
 
-  const pollInvocationStatus = async (
+  const pollForInvocationData = async (
     profileId: string,
     invocationId: string,
     messageId: string
@@ -57,10 +60,10 @@ export function useChatSession() {
     try {
       const invocation = await fetchInvocation(profileId, invocationId);
 
-      const messageIndex = messages.value.findIndex((m) => m.id === messageId);      
+      const existingMessage = messages.value.get(messageId);
 
-      if (messageIndex !== -1) {
-        const oldContent = messages.value[messageIndex].content as AIMessageContent;
+      if (existingMessage) {
+        const oldContent = existingMessage.content as AIMessageContent;
 
         const updatedContent: AIMessageContent = {
           invocation_id: invocation.invocation_id,
@@ -68,6 +71,7 @@ export function useChatSession() {
           steps: invocation.graph_state?.steps || [],
           final_result: invocation.graph_state?.current_result,
           error_message: invocation.graph_state?.error,
+          latestBlurb: invocation.graph_state?.blurb,
         };
 
         if (JSON.stringify(oldContent.steps) !== JSON.stringify(updatedContent.steps)) {
@@ -76,7 +80,10 @@ export function useChatSession() {
             updatedContent.steps
           );
 
-          messages.value[messageIndex].content = updatedContent;
+          messages.value.set(messageId, {
+            ...existingMessage,
+            content: updatedContent,
+          });
         }        
 
         if (
@@ -85,34 +92,34 @@ export function useChatSession() {
           invocation.status === 'error'
         ) {
           chatStatus.value = 'idle';
-          stopPolling();
+          stopPollingForInvocationData();
           console.log(
             `Invocation ${invocationId} reached terminal state: ${invocation.status}`
           );
         }
       } else {
         console.warn(`Message with ID ${messageId} not found during polling`);
-        stopPolling();
+        stopPollingForInvocationData();
       }
     } catch (err) {
       console.error("Error polling invocation status:", err);
     }
   };
 
-  const startPolling = (
+  const startPollingForInvocationData = (
     profileId: string,
     invocationId: string,
     messageId: string
   ) => {
-    stopPolling();
+    stopPollingForInvocationData();
 
     console.log(`Starting to poll invocation ${invocationId}`);
 
-    pollingIntervalId = window.setInterval(() => {
-      pollInvocationStatus(profileId, invocationId, messageId);
+    invocationPollingIntervalId = window.setInterval(() => {
+      pollForInvocationData(profileId, invocationId, messageId);
     }, INVOCATION_POLL_INTERVAL);
 
-    pollInvocationStatus(profileId, invocationId, messageId);
+    pollForInvocationData(profileId, invocationId, messageId);
   };
 
   const stopCurrentInvocation = async () => {
@@ -129,22 +136,21 @@ export function useChatSession() {
       currentAbortController = null;
     }
 
-    stopPolling();
+    stopPollingForInvocationData();
 
     if (messageId) {
-      const messageIndex = messages.value.findIndex(
-        (m) => m.id === messageId,
-      );
+      const existingMessage = messages.value.get(messageId);
 
-      if (messageIndex !== -1) {
-        const existing = messages.value[
-          messageIndex
-        ].content as AIMessageContent;
+      if (existingMessage) {
+        const existing = existingMessage.content as AIMessageContent;
 
-        messages.value[messageIndex].content = {
-          ...existing,
-          status: 'stopped',
-        } as AIMessageContent;
+        messages.value.set(messageId, {
+          ...existingMessage,
+          content: {
+            ...existing,
+            status: 'stopped',
+          } as AIMessageContent,
+        });
       }
     }
 
@@ -189,12 +195,12 @@ export function useChatSession() {
     conversationId: string,
     profileId: string,
   ) => {
-    stopPolling();
+    stopPollingForInvocationData();
 
     if (!conversationId) {
       console.warn("No conversation ID provided");
 
-      messages.value = [];
+      messages.value = new Map();
       currentConversationId.value = "";
 
       return;
@@ -213,7 +219,7 @@ export function useChatSession() {
         currentConversationId.value = conversation.id;
         currentProfileId.value = profileId;
         
-        const loadedMessages = [];
+        const loadedMessages: ChatMessageViewModel[] = [];
 
         for (const turn of conversation.chat_turns) {
           if (turn.role === "human") {
@@ -266,7 +272,9 @@ export function useChatSession() {
           }
         }
 
-        messages.value = loadedMessages;
+        messages.value = new Map(
+          loadedMessages.map((message) => [message.id, message]),
+        );
 
         const lastMessage = loadedMessages[loadedMessages.length - 1];
         if (
@@ -281,7 +289,7 @@ export function useChatSession() {
             activeInvocationId.value = lastMessage.content.invocation_id;
             activeAiMessageId.value = lastMessage.id;
 
-            startPolling(
+            startPollingForInvocationData(
               profileId,
               lastMessage.content.invocation_id,
               lastMessage.id
@@ -290,8 +298,8 @@ export function useChatSession() {
         }
       } else {
         console.warn("Conversation not found");
-        
-        messages.value = [];
+
+        messages.value = new Map();
         currentConversationId.value = "";
 
         error.value = "Conversation not found";
@@ -302,7 +310,7 @@ export function useChatSession() {
       error.value =
         err instanceof Error ? err.message : "Failed to load conversation";
 
-      messages.value = [];
+      messages.value = new Map();
       currentConversationId.value = "";
     } finally {
       if (chatStatus.value === 'loading') {
@@ -371,7 +379,11 @@ export function useChatSession() {
       }
     }
 
-    const chatHistory: SimpleMessage[] = messages.value      
+    // The chat history is compiled here before adding the new user message and AI response
+    // message to ensure the history sent to the backend reflects the state at the time of
+    // the user query. 
+
+    const chatHistory: SimpleMessage[] = Array.from(messages.value.values())
       .map((msg) => {
         if (msg.role === "user") {
           return {
@@ -389,6 +401,10 @@ export function useChatSession() {
 
     const userTimestamp = new Date().toISOString();
 
+    // Below, the new user message and the placeholder AI message are created 
+    // before processing the graph execution stream to ensure they are properly
+    // updated in both the frontend and the database.
+
     try {
       const userChatTurn = await createChatTurn(
         profileId,
@@ -400,7 +416,7 @@ export function useChatSession() {
 
       console.log("Created user chat turn:", userChatTurn);
 
-      messages.value.push({
+      messages.value.set(userChatTurn.id, {
         id: userChatTurn.id,
         role: "user",
         content: userChatTurn.data.content,
@@ -438,7 +454,7 @@ export function useChatSession() {
         steps: [],
       };
 
-      messages.value.push({
+      messages.value.set(aiChatTurn.id, {
         id: aiChatTurn.id,
         role: "ai",
         content: initialAIContent,
@@ -453,6 +469,11 @@ export function useChatSession() {
 
       return;
     }
+
+    // Invoke the graph execution stream after both chat turns have been created to ensure 
+    // the AI message can be updated with invocation data in real-time as it arrives. If the
+    // stream is interrupted, then polling will pick up the invocation data and update the 
+    // message accordingly when the user returns to the conversation.
 
     try {
       console.log("Starting graph execution stream for query:", request.query);    
@@ -478,12 +499,12 @@ export function useChatSession() {
         currentAbortController.signal,
       );
 
-      let invocationIdSet = false;
       let currentInvocationId: string | null = null;
       
       let currentSteps: GraphStep[] = [];
+      let latestBlurb: string | undefined;
 
-      let finalStatus: AIMessageContent['status'] = 'running';
+      let finalStatus: InvocationStatus = 'running';
       let finalResult: string | undefined;
 
       let errorMessage: string | undefined;
@@ -500,7 +521,7 @@ export function useChatSession() {
               console.log("Stream event received:", parsedData);
 
               if (
-                !invocationIdSet &&
+                !currentInvocationId &&
                 parsedData.invocation_id &&
                 aiChatTurnId
               ) {
@@ -510,13 +531,13 @@ export function useChatSession() {
                 );
 
                 currentInvocationId = parsedData.invocation_id;
+
                 activeInvocationId.value = currentInvocationId ?? "";
                 activeAiMessageId.value = aiChatTurnId;
 
                 await updateChatTurn(profileId, aiChatTurnId, {
                   invocation_id: parsedData.invocation_id,
                 });
-                invocationIdSet = true;
 
                 console.log("Invocation ID updated successfully");
               }
@@ -528,6 +549,8 @@ export function useChatSession() {
               } else if (parsedData.event_type === 'error') {
                 finalStatus = 'error';
                 errorMessage = parsedData.event_value?.error;
+              } else if (parsedData.event_type === 'blurb') {
+                latestBlurb = parsedData.event_value?.content;
               }
 
               if (
@@ -547,20 +570,24 @@ export function useChatSession() {
                 }
               }
 
-              const messageIndex = messages.value.findIndex(
-                (m) => m.id === aiChatTurnId,
-              );
+              const existingMessage = aiChatTurnId
+                ? messages.value.get(aiChatTurnId)
+                : undefined;
 
-              if (messageIndex !== -1) {
+              if (existingMessage && aiChatTurnId) {
                 const updatedContent: AIMessageContent = {
                   invocation_id: currentInvocationId || undefined,
                   status: finalStatus,
                   steps: [...currentSteps],
                   final_result: finalResult,
                   error_message: errorMessage,
+                  latestBlurb: latestBlurb,
                 };
 
-                messages.value[messageIndex].content = updatedContent;
+                messages.value.set(aiChatTurnId, {
+                  ...existingMessage,
+                  content: updatedContent,
+                });
               }
             }
           }
@@ -581,11 +608,11 @@ export function useChatSession() {
           currentSteps = invocation.graph_state?.steps || [];
           finalResult = invocation.graph_state?.current_result;
 
-          const messageIndex = messages.value.findIndex(
-            (m) => m.id === aiChatTurnId,
-          );
+          const existingMessage = aiChatTurnId
+            ? messages.value.get(aiChatTurnId)
+            : undefined;
 
-          if (messageIndex !== -1) {
+          if (existingMessage && aiChatTurnId) {
             const updatedContent: AIMessageContent = {
               invocation_id: currentInvocationId,
               status: finalStatus,
@@ -594,7 +621,10 @@ export function useChatSession() {
               error_message: errorMessage,
             };
 
-            messages.value[messageIndex].content = updatedContent;
+            messages.value.set(aiChatTurnId, {
+              ...existingMessage,
+              content: updatedContent,
+            });
           }
         } catch (err) {
           console.error("Error fetching final invocation state:", err);
@@ -635,37 +665,34 @@ export function useChatSession() {
   };
 
   const clearChatSession = () => {
-    stopPolling();
+    stopPollingForInvocationData();
 
     if (currentAbortController) {
       currentAbortController.abort();
       currentAbortController = null;
     }
 
-    messages.value = [];
+    messages.value = new Map();
     currentConversationId.value = "";
     currentProfileId.value = "";
     activeInvocationId.value = "";
-    activeAiMessageId.value = "";
-    error.value = "";
+    activeAiMessageId.value = "";    
     chatStatus.value = 'idle';
+    error.value = "";
   };
 
   return {
     messages: computed(() => messages.value),
     conversations: computed(() => conversations.value),
     chatStatus: computed(() => chatStatus.value),
-    isLoadingConversations: computed(() => isLoadingConversations.value),
-    error: computed(() => error.value),
+    isLoadingConversations: computed(() => isLoadingConversations.value),    
     currentConversationId: computed(() => currentConversationId.value),
+    error: computed(() => error.value),
     loadConversations,
     loadConversation,
     createNewConversation,
     submitMessage,
     stopCurrentInvocation,
     clearChatSession,
-    setError: (errorMessage: string) => {
-      error.value = errorMessage;
-    },
   };
 }

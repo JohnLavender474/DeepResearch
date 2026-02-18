@@ -101,21 +101,23 @@ def _format_context(
         context_parts.append("## Chat History Context")
         for msg in chat_history:            
             context_parts.append(f"\t{msg.type}: {msg.content}")
-        context_parts.append("\n---\n")
+        
+    context_parts.append("\n---\n")
 
     context_parts.append("## Search Query Context")
     context_parts.append(f"Search query used for retrieval: {search_query}")
+    
     context_parts.append("\n---\n")
 
     context_parts.append("## Document Context")    
     if not documents:
         logger.warning(f"No documents found relevant to the search query")
         context_parts.append(f"No documents found for the search query")
-    else:                
-        context_parts.append("Retrieved documents:")
-        for i, doc in enumerate(documents):
-            content = doc.content_summary or doc.metadata.content
-            context_parts.append(f"\t{i}. {content}")
+    else:                        
+        for i, doc in enumerate(documents):            
+            context_parts.append(
+                f"{i}. {json.dumps(doc.model_dump(), indent=2)}"
+            )
 
     return "\n".join(context_parts)
 

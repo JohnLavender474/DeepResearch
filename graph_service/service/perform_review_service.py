@@ -1,10 +1,12 @@
 import json
 import logging
+from typing import Optional
 
 from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
 )
+from langgraph.types import StreamWriter
 
 from llm.llm_client import LLMClient
 from model.perform_review import (
@@ -21,8 +23,15 @@ logger = logging.getLogger(__name__)
 async def execute_perform_review(
     input_data: PerformReviewInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
 ) -> PerformReviewOutput:
     logger.debug("Starting task results review")
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "message": "Reviewing task results..."
+        })
 
     review_prompt = load_prompt("perform_review.md")
 
@@ -50,3 +59,4 @@ async def execute_perform_review(
     logger.debug("Task review completed")
     
     return PerformReviewOutput(review=review_content)
+

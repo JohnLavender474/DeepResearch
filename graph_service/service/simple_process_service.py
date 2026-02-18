@@ -1,4 +1,7 @@
 from datetime import datetime
+from typing import Optional
+
+from langgraph.types import StreamWriter
 
 from model.citation import Citation
 from llm.llm_client import LLMClient
@@ -13,6 +16,7 @@ from utils.prompt_loader import load_prompt
 async def execute_simple_process(
     input_data: SimpleProcessInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
 ) -> SimpleProcessOutput:
     current_date = datetime.now().strftime("%Y-%m-%d")
 
@@ -23,6 +27,12 @@ async def execute_simple_process(
             "current_date": current_date,      
         },
     )
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Executing simple LLM invocation...",
+        })
 
     task_entry = await execute_task(
         task=input_data.query,
@@ -41,6 +51,12 @@ async def execute_simple_process(
     else:
         result = task_entry.result or "No result returned."
         citations = task_entry.citations
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Simple process completed. Returning result...",
+        })
 
     return SimpleProcessOutput(
         result=result,

@@ -1,10 +1,12 @@
 import json
 import logging
+from typing import Optional
 
 from langchain_core.messages import (
     HumanMessage,
     SystemMessage,
 )
+from langgraph.types import StreamWriter
 
 from llm.llm_client import LLMClient
 from model.generate_summary import (
@@ -21,8 +23,15 @@ logger = logging.getLogger(__name__)
 async def execute_generate_summary(
     input_data: GenerateSummaryInput,
     llm_client: LLMClient,
+    stream_writer: Optional[StreamWriter] = None,
 ) -> GenerateSummaryOutput:
     logger.debug("Starting summary generation")
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Generating research final result...",
+        })
     
     summary_prompt = load_prompt("generate_summary.md")
 
@@ -54,5 +63,11 @@ async def execute_generate_summary(
     )
 
     logger.debug("Summary generation completed")
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Research final result generation completed.",
+        })
 
     return GenerateSummaryOutput(summary=summary_content)

@@ -14,4 +14,5 @@ export default interface AIMessageContent {
   steps: GraphStep[]
   final_result?: string
   error_message?: string
+  latestBlurb?: string
 }

@@ -22,4 +22,5 @@ class GraphState(BaseModel):
     task_entries: list[TaskEntry] = []
     review: str = ""
     current_result: str = ""
+    blurb: Optional[str] = None
     execution_config: ExecutionConfig = ExecutionConfig.default()

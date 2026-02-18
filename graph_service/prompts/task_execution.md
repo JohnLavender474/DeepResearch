@@ -12,6 +12,9 @@ arrived at the result.
 Task: {task}
 
 Provide your result and explain your reasoning.
+Provide citations to any sources you used in your research 
+where each citation includes the source name and page number
+if either is available and applies.
 
 ## Additional Context
 
