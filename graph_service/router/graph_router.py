@@ -2,8 +2,10 @@ import json
 import httpx
 import asyncio
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
+
+from client import database_client
 
 from model.graph_input import GraphInput
 from model.process_selection import PROCESS_TYPES
@@ -12,8 +14,6 @@ from utils.graph_streamer import (
     consume_graph_to_queue,
     stream_from_queue,
 )
-from service import invocations_service
-from config import DATABASE_SERVICE_URL
 
 import logging
 
@@ -70,26 +70,9 @@ async def stop_invocation(invocation_id: str):
     )
 
     try:
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{DATABASE_SERVICE_URL}"
-                f"/invocation-stop-requests",
-                json={
-                    "invocation_id": invocation_id,
-                },
-            )
-
-            if response.status_code == 404:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Stop request not found",
-                )
-
-            if response.status_code >= 400:
-                raise HTTPException(
-                    status_code=response.status_code,
-                    detail="Failed to process stop request",
-                )
+        await database_client.create_stop_request(
+            invocation_id=invocation_id,
+        )
 
         logger.info(
             f"Stop request successfully processed for "
@@ -105,6 +88,20 @@ async def stop_invocation(invocation_id: str):
 
     except HTTPException:
         raise
+
+    except httpx.HTTPStatusError as e:
+        status_code = e.response.status_code
+
+        if status_code == 404:
+            raise HTTPException(
+                status_code=404,
+                detail="Stop request not found",
+            )
+
+        raise HTTPException(
+            status_code=status_code,
+            detail="Failed to process stop request",
+        )
 
     except Exception as e:
         logger.error(

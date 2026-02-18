@@ -33,9 +33,9 @@ should:
      Use the source material to define terms in the glossary, 
      and ensure that definitions are clear and concise where
      possible. Structure the glossary as a bullet list where each
-     bullet looks like the following: **Term**: Definition. 
-     Do not use headers for the glossary, just use the bolded term 
-     as the identifier for each definition.
+     bullet looks like the following: Term (not bolded): Definition. 
+     Do not use headers for the glossary, just use the term as
+     the identifier for each definition.
    - Use bullet points or numbered lists to break down complex
      information into digestible parts, especially when
      summarizing key findings or outlining steps. Do not use headers
@@ -56,11 +56,12 @@ should:
      implications of the information.
 
 4. **Use citations if available**: If your synthesis references specific findings from the tasks, 
-   include citations to those tasks in the format (Task {task_number}) in bold along with any source 
+   include citations to those tasks in the format (Task {task_number}) along with any source 
    file citations that may be included in the task data itself (source name and page number if available). 
    This will help the user trace back the origins of specific insights or data points. The source 
    names should be formatted in italics, and the page numbers should be included in parentheses as
-   "page X", "pages X-Y", or "pages X, Y, and Z" immediately following the source name.
+   "page X", "pages X-Y", or "pages X, Y, and Z" immediately following the source name. Do NOT use bold
+    or italics for the citations themselves, just the source name. For example: (Task 3, SourceName (page 5)).
 
 4. **Suggest next steps**: Provide 3 to 5 good follow-up questions 
    that would help deepen or refine the research based on the synthesized

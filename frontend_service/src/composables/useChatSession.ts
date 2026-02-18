@@ -94,17 +94,10 @@ export function useChatSession() {
           latestBlurb: invocation.graph_state?.blurb,
         };
 
-        if (JSON.stringify(oldContent.steps) !== JSON.stringify(updatedContent.steps)) {
-          console.log(
-            `Invocation ${invocationId} steps updated:`,
-            updatedContent.steps
-          );
-
-          messages.value.set(messageId, {
-            ...existingMessage,
-            content: updatedContent,
-          });
-        }        
+        messages.value.set(messageId, {
+          ...existingMessage,
+          content: updatedContent,
+        });
 
         if (
           invocation.status === 'completed' ||
