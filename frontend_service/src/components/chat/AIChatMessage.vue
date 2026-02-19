@@ -1,5 +1,5 @@
 <template>
-  <div class="ai-message">
+  <div ref="rootElement" class="ai-message">
     <MarkdownModal
       :is-open="isModalOpen"
       :title="modalTitle"
@@ -221,12 +221,16 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import {
+  computed,
+  ref,
+} from 'vue'
 import { marked } from 'marked'
 import { Copy, Check, Maximize2 } from 'lucide-vue-next'
 
 import CollapsibleSection from './CollapsibleSection.vue'
 import MarkdownModal from '../modals/MarkdownModal.vue'
+import { useMarkdownTableScrollbars } from '../utils/markdownTableScrollbars'
 import type AIMessageContent from '@/model/aiMessageContent'
 import type GraphStep from '@/model/graphStep'
 import type TaskEntry from '@/model/taskEntry'
@@ -240,7 +244,10 @@ interface AIChatMessageProps {
 
 const props = defineProps<AIChatMessageProps>()
 
+const rootElement = ref<HTMLElement | null>(null)
+
 const copiedStates = ref<Record<string, boolean>>({})
+
 const isModalOpen = ref(false)
 const modalTitle = ref('')
 const modalContent = ref('')
@@ -402,6 +409,8 @@ const getStepDisplayText = (step: GraphStep): string => {
 const renderMarkdown = (markdown: string) => {
   return marked(markdown)
 }
+
+useMarkdownTableScrollbars(rootElement)
 </script>
 
 <style scoped>
@@ -612,7 +621,35 @@ const renderMarkdown = (markdown: string) => {
 
 .markdown-content {
   max-height: 400px;
+  max-width: 100%;
+  overflow-x: auto;
   overflow-y: auto;
+}
+
+.markdown-content :deep(pre) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-content :deep(table) {
+  display: table;
+  max-width: 100%;
+}
+
+.markdown-content :deep(.table-scroll-wrap) {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.markdown-content :deep(.table-scroll-top),
+.markdown-content :deep(.table-scroll-bottom) {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-content :deep(.table-scroll-top-inner) {
+  height: 1px;
 }
 
 .task-result-content {
