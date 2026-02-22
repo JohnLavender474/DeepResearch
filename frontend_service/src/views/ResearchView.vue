@@ -8,9 +8,13 @@
       <div class="no-profile-state">
         <div class="no-profile-content">
           <h2>No Profile Selected</h2>
-          <p>
+          <p v-if="profiles.length === 0">
             Create a new profile to get started with
             research, chat, and document uploads.
+          </p>
+          <p v-else>
+            Select an existing profile or create a new one to start
+            researching, chatting, and managing documents.
           </p>
           <AddProfileButton
             :disabled="profilesLoading"
@@ -267,24 +271,24 @@ const loadProfiles = async (preferredProfileId: string | null) => {
 
   profiles.value = await fetchProfiles()
 
-  if (profiles.value.length > 0) {
-    const storedProfileId = storage.getSelectedProfile()
-    const preferredProfile = preferredProfileId
-      ? profiles.value.find(
-          (profile) => profile.id === preferredProfileId
-        )
-      : storedProfileId
-        ? profiles.value.find(
-            (profile) => profile.id === storedProfileId
-          )
-        : null
+  if (profiles.value.length === 0) {
+    selectedProfileId.value = ''
+    profilesLoading.value = false
+    return
+  }
 
-    if (preferredProfile) {
-      selectedProfileId.value = preferredProfile.id
-    } else {
-      selectedProfileId.value = profiles.value[0].id
-    }
+  if (!preferredProfileId) {
+    selectedProfileId.value = ''
+    profilesLoading.value = false
+    return
+  }
 
+  const preferredProfile = profiles.value.find(
+    (profile) => profile.id === preferredProfileId
+  )
+
+  if (preferredProfile) {
+    selectedProfileId.value = preferredProfile.id
     await loadConversations(selectedProfileId.value)
   } else {
     selectedProfileId.value = ''
