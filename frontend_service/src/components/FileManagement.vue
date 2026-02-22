@@ -252,7 +252,7 @@ const handleFile = async (file: File) => {
     }
 
     if (uploadedFiles.value.has(file.name)) {
-        errorMessage.value = 'A file with this name already exists'
+        addToast('A file with this name already exists', 'error')
         return
     }
 
