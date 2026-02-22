@@ -7,7 +7,6 @@
 
     <ChatMessages
       v-else
-      ref="chatMessagesRef"
       :messages="props.messages"
     />
 
@@ -27,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 import ChatMessages from './ChatMessages.vue'
 import UserInput from './UserInput.vue'
@@ -55,16 +54,6 @@ const emit = defineEmits<{
 }>()
 
 const userInputRef = ref<InstanceType<typeof UserInput> | null>(null)
-const chatMessagesRef = ref<InstanceType<typeof ChatMessages> | null>(null)
-
-watch(
-  () => props.chatStatus,
-  (newStatus, oldStatus) => {
-    if (oldStatus === 'loading' && newStatus !== 'loading' && props.messages.length > 0) {
-      chatMessagesRef.value?.scrollToBottom()
-    }
-  }
-)
 
 const onSubmit = (request: UserQueryRequest) => {
   emit('submit', request)
