@@ -1,50 +1,106 @@
 <template>
     <div class="file-upload">
-        <UploadFile
-            @file-selected="handleFile"
-        />
+        <div>
+            <UploadFile
+                @file-selected="handleFile"
+            />
 
-        <div v-if="errorMessage" class="error-message">
-            {{ errorMessage }}
-        </div>
+            <div v-if="errorMessage" class="error-message">
+                {{ errorMessage }}
+            </div>
 
-        <div class="uploaded-files">
-            <div class="uploaded-files-header">
-                <h4>Uploaded Documents</h4>
-                <button
-                    class="refresh-button"
-                    @click="loadUploadedFiles(props.profileId)"
-                    title="Refresh documents list"
-                    :disabled="loadingDocuments"
-                >
-                    <RefreshCw
-                        :size="18"
-                        :class="{ 'spinning': loadingDocuments }"
+            <div class="uploaded-files">
+                <div class="uploaded-files-header">
+                    <h4>Uploaded Documents</h4>
+                    <div class="header-actions">
+                        <button
+                            class="refresh-button"
+                            @click="loadUploadedFiles(props.profileId)"
+                            title="Refresh documents list"
+                            :disabled="loadingDocuments"
+                        >
+                            <RefreshCw
+                                :size="18"
+                                :class="{ 'spinning': loadingDocuments }"
+                            />
+                        </button>
+                        <button
+                            class="refresh-button"
+                            @click="openDocumentsBrowser"
+                            title="Search and browse documents"
+                            :disabled="loadingDocuments"
+                        >
+                            <ExternalLink :size="18" />
+                        </button>
+                    </div>
+                </div>
+                <div class="search-container">
+                    <input
+                        v-model="searchQuery"
+                        type="text"
+                        class="search-input"
+                        placeholder="Search documents by name"
                     />
-                </button>
-            </div>
-            <div v-if="loadingDocuments && uploadedFiles.size === 0" class="loading-container">
-                <div class="spinner"></div>
-                <span>Loading documents...</span>
-            </div>
-            <ul v-else>
-                <li
-                    v-for="file in Array.from(uploadedFiles.values())"
-                    :key="file.filename"
-                    @click="openDocumentModal(file)"
-                    class="document-row"
+                </div>
+                <div v-if="loadingDocuments && uploadedFiles.size === 0" class="loading-container">
+                    <div class="spinner"></div>
+                    <span>Loading documents...</span>
+                </div>
+                <ul v-else>
+                    <li
+                        v-for="file in paginatedFiles"
+                        :key="file.filename"
+                        @click="openDocumentModal(file)"
+                        class="document-row"
+                    >
+                        <span class="file-name">{{ file.filename }}</span>
+                    </li>
+                    <li v-if="uploadedFiles.size === 0" class="no-documents">
+                        No documents uploaded yet
+                    </li>
+                    <li
+                        v-else-if="filteredFiles.length === 0"
+                        class="no-documents"
+                    >
+                        No documents match your search
+                    </li>
+                    <li v-if="loadingDocuments && uploadedFiles.size > 0" class="loading-more">
+                        <div class="spinner-small"></div>
+                        <span>Loading more documents...</span>
+                    </li>
+                </ul>
+                <div
+                    v-if="filteredFiles.length > 0"
+                    class="pagination-container"
                 >
-                    <span class="file-name">{{ file.filename }}</span>
-                </li>
-                <li v-if="uploadedFiles.size === 0" class="no-documents">
-                    No documents uploaded yet
-                </li>
-                <li v-if="loadingDocuments && uploadedFiles.size > 0" class="loading-more">
-                    <div class="spinner-small"></div>
-                    <span>Loading more documents...</span>
-                </li>
-            </ul>
+                    <button
+                        class="pagination-button"
+                        @click="goToPreviousPage"
+                        :disabled="!canGoPrevious"
+                    >
+                        Previous
+                    </button>
+                    <span class="pagination-info">
+                        Page {{ currentPage }} of {{ totalPages }}
+                    </span>
+                    <button
+                        class="pagination-button"
+                        @click="goToNextPage"
+                        :disabled="!canGoNext"
+                    >
+                        Next
+                    </button>
+                </div>
+            </div>
         </div>
+
+        <DocumentsBrowserModal
+            :is-open="isDocumentsBrowserOpen"
+            :documents="allFiles"
+            :profile-id="profileId"
+            @close="closeDocumentsBrowser"
+            @document-deleted="handleDocumentDeleted"
+        />
 
         <DocumentModal
             :is-open="isDocModalOpen"
@@ -64,8 +120,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { RefreshCw } from 'lucide-vue-next'
+import { computed, ref, watch } from 'vue'
+import { ExternalLink, RefreshCw } from 'lucide-vue-next'
 import { uploadFile, fetchFilesForProfile } from '@/services/fileService'
 import {
     fileSizeExceedsMax,
@@ -73,6 +129,7 @@ import {
     splitPdf,
 } from '@/services/pdfSplitService'
 import DocumentModal from './modals/DocumentModal.vue'
+import DocumentsBrowserModal from './modals/DocumentsBrowserModal.vue'
 import FileSplitModal from './modals/FileSplitModal.vue'
 import UploadFile from './UploadFile.vue'
 import '@/styles/shared.css'
@@ -92,16 +149,69 @@ const emit = defineEmits<{
 
 const uploadedFiles = ref<Map<string, FileInfo>>(new Map())
 const loadingDocuments = ref(false)
+const searchQuery = ref('')
+const currentPage = ref(1)
+const pageSize = 10
 
 const errorMessage = ref('')
 
 const isDocModalOpen = ref(false)
+const isDocumentsBrowserOpen = ref(false)
+
 const selectedDocument = ref<FileInfo | null>(null)
 
 const isSplitModalOpen = ref(false)
+
 const oversizedFile = ref<File | null>(null)
 
 const { addToast } = useToasts()
+
+const allFiles = computed(() => Array.from(uploadedFiles.value.values()))
+
+const filteredFiles = computed(() => {
+    const query = searchQuery.value.trim().toLowerCase()
+
+    if (!query) {
+        return allFiles.value
+    }
+
+    return allFiles.value.filter((file) =>
+        file.filename.toLowerCase().includes(query)
+    )
+})
+
+const totalPages = computed(() => {
+    return Math.max(1, Math.ceil(filteredFiles.value.length / pageSize))
+})
+
+const paginatedFiles = computed(() => {
+    const startIndex = (currentPage.value - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    return filteredFiles.value.slice(startIndex, endIndex)
+})
+
+const canGoPrevious = computed(() => currentPage.value > 1)
+const canGoNext = computed(() => currentPage.value < totalPages.value)
+
+const goToPreviousPage = () => {
+    if (canGoPrevious.value) {
+        currentPage.value -= 1
+    }
+}
+
+const goToNextPage = () => {
+    if (canGoNext.value) {
+        currentPage.value += 1
+    }
+}
+
+const openDocumentsBrowser = () => {
+    isDocumentsBrowserOpen.value = true
+}
+
+const closeDocumentsBrowser = () => {
+    isDocumentsBrowserOpen.value = false
+}
 
 const loadUploadedFiles = async (profileId: string) => {
     console.debug('Loading documents for profile:', profileId)
@@ -114,6 +224,7 @@ const loadUploadedFiles = async (profileId: string) => {
 
     loadingDocuments.value = true
     uploadedFiles.value = new Map()
+    currentPage.value = 1
     
     errorMessage.value = ''    
 
@@ -265,13 +376,27 @@ watch(
     () => props.profileId,
     (newProfileId) => {
         if (newProfileId) {
+            searchQuery.value = ''
+            currentPage.value = 1
             loadUploadedFiles(newProfileId)           
         } else {            
             uploadedFiles.value = new Map()
+            searchQuery.value = ''
+            currentPage.value = 1
         }
     },
     { immediate: true }
 )
+
+watch(searchQuery, () => {
+    currentPage.value = 1
+})
+
+watch(totalPages, (newTotalPages) => {
+    if (currentPage.value > newTotalPages) {
+        currentPage.value = newTotalPages
+    }
+})
 </script>
 
 <style scoped>
@@ -307,6 +432,38 @@ watch(
     font-size: 0.9rem;
     color: var(--color-text-primary);
     font-weight: 600;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.search-container {
+    margin-bottom: 0.75rem;
+    flex-shrink: 0;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.6rem 0.75rem;
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: var(--size-border-radius-sm);
+    color: var(--color-text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.search-input::placeholder {
+    color: var(--color-text-tertiary);
+}
+
+.search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
 }
 
 .refresh-button {
@@ -410,6 +567,44 @@ watch(
     background-color: transparent;
     border: none;
     cursor: default;
+}
+
+.pagination-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+    flex-shrink: 0;
+}
+
+.pagination-button {
+    background: var(--color-surface-hover);
+    border: 1px solid var(--color-border);
+    border-radius: var(--size-border-radius-sm);
+    padding: 0.4rem 0.7rem;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all var(--transition-base);
+}
+
+.pagination-button:hover:not(:disabled) {
+    background: var(--color-surface-active);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.pagination-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    color: var(--color-text-tertiary);
+    font-size: 0.85rem;
 }
 
 .spinner-small {

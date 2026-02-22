@@ -48,6 +48,7 @@ export async function fetchFilesForProfile(
       (doc: any) => ({
         filename: doc.filename,
         blobId: doc.id,
+        uploadedAt: doc.uploaded_at,
         embeddingsId: '',
       })
     );
