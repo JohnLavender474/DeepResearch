@@ -348,7 +348,7 @@ watch(totalPages, (newTotalPages) => {
     border-radius: var(--size-border-radius-lg);
     border: 1px solid var(--color-border);
     box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
-    width: clamp(80vw, 1000px, 95vw);
+    width: 100%;
     height: min(85vh, 760px);
     display: flex;
     flex-direction: column;

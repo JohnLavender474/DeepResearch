@@ -100,7 +100,6 @@ watch(() => props.isOpen, (newValue) => {
   border: 1px solid var(--color-border);
   border-radius: var(--size-border-radius);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
-  max-width: 900px;
   width: 100%;
   max-height: 90vh;
   display: flex;

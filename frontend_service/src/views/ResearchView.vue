@@ -708,7 +708,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
     top: 0;
     bottom: 0;
     width: 50%;
-    height: 90%;
+    height: 100%;
     z-index: 1000;
     background-color: var(--color-bg-1);
     border: 1px solid var(--color-border);
