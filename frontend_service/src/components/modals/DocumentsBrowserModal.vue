@@ -1,6 +1,7 @@
 <template>
-    <div v-if="isOpen" class="modal-overlay" @click="closeModal">
-        <div class="modal-content" @click.stop>
+    <Teleport to="body">
+        <div v-if="isOpen" class="modal-overlay" @click="closeModal">
+            <div class="modal-content" @click.stop>
             <div class="modal-header">
                 <h3>Documents</h3>
                 <button class="close-button" @click="closeModal" aria-label="Close modal">
@@ -26,7 +27,7 @@
                     </p>
                 </div>
 
-                <div class="table-container">
+                <div class="table-container" :class="{ 'is-empty': filteredAndSortedDocuments.length === 0 }">
                     <table class="documents-table">
                         <colgroup>
                             <col class="filename-col">
@@ -102,13 +103,11 @@
                                     </button>
                                 </td>
                             </tr>
-                            <tr v-if="filteredAndSortedDocuments.length === 0">
-                                <td colspan="3" class="empty-state">
-                                    No documents found
-                                </td>
-                            </tr>
                         </tbody>
                     </table>
+                    <div v-if="filteredAndSortedDocuments.length === 0" class="empty-overlay">
+                        No documents found
+                    </div>
                 </div>
 
                 <div class="pagination-container">
@@ -133,8 +132,9 @@
                     </button>
                 </div>
             </div>
+            </div>
         </div>
-    </div>
+    </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -157,6 +157,8 @@ interface DocumentsBrowserModalProps {
     profileId: string
 }
 
+type SortField = 'filename' | 'uploadedAt'
+
 const props = defineProps<DocumentsBrowserModalProps>()
 
 interface DocumentsBrowserModalEmits {
@@ -167,9 +169,12 @@ interface DocumentsBrowserModalEmits {
 const emit = defineEmits<DocumentsBrowserModalEmits>()
 
 const searchQuery = ref('')
-const sortBy = ref<'filename' | 'uploadedAt'>('uploadedAt')
+
+const sortBy = ref<SortField>('uploadedAt')
 const sortDirection = ref<'asc' | 'desc'>('desc')
+
 const loadingByFilename = ref<Record<string, boolean>>({})
+
 const currentPage = ref(1)
 const pageSize = 25
 
@@ -234,21 +239,25 @@ const filteredAndSortedDocuments = computed(() => {
         ? props.documents.filter((document) =>
             document.filename.toLowerCase().includes(query)
         )
-        : props.documents
+        : [...props.documents]
 
-    return [...filtered].sort((a, b) => {
+    return filtered.sort((a, b) => {
         if (sortBy.value === 'filename') {
             const nameA = a.filename.toLowerCase()
             const nameB = b.filename.toLowerCase()
+
             if (nameA < nameB) return sortDirection.value === 'asc' ? -1 : 1
             if (nameA > nameB) return sortDirection.value === 'asc' ? 1 : -1
+
             return 0
         }
 
         const timeA = new Date(a.uploadedAt).getTime()
         const timeB = new Date(b.uploadedAt).getTime()
+
         if (timeA < timeB) return sortDirection.value === 'asc' ? -1 : 1
         if (timeA > timeB) return sortDirection.value === 'asc' ? 1 : -1
+
         return 0
     })
 })
@@ -277,7 +286,7 @@ const goToNextPage = () => {
     }
 }
 
-const toggleSort = (field: 'filename' | 'uploadedAt') => {
+const toggleSort = (field: SortField) => {
     if (sortBy.value === field) {
         sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc'
         return
@@ -287,7 +296,7 @@ const toggleSort = (field: 'filename' | 'uploadedAt') => {
     sortDirection.value = 'asc'
 }
 
-const getSortIndicator = (field: 'filename' | 'uploadedAt') => {
+const getSortIndicator = (field: SortField) => {
     if (sortBy.value !== field) {
         return '↕'
     }
@@ -297,6 +306,7 @@ const getSortIndicator = (field: 'filename' | 'uploadedAt') => {
 
 const formatUploadedAt = (value: string) => {
     const parsed = new Date(value)
+    
     if (Number.isNaN(parsed.getTime())) {
         return value
     }
@@ -401,6 +411,7 @@ watch(totalPages, (newTotalPages) => {
 }
 
 .table-container {
+    position: relative;
     flex: 1;
     min-height: 0;
     border: 1px solid var(--color-border);
@@ -408,6 +419,10 @@ watch(totalPages, (newTotalPages) => {
     overflow-x: hidden;
     overflow-y: auto;
     padding-right: 0.4rem;
+}
+
+.table-container.is-empty {
+    padding-right: 0;
 }
 
 .documents-table {
@@ -555,9 +570,15 @@ watch(totalPages, (newTotalPages) => {
     font-size: 0.85rem;
 }
 
-.empty-state {
-    text-align: center;
+.empty-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-align: left;
+    padding-left: 0.75rem;
     color: var(--color-text-tertiary);
-    padding: 1.25rem;
+    pointer-events: none;
 }
 </style>
