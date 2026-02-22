@@ -124,6 +124,7 @@ main {
   padding-top: 4rem;  
   width: 100%;
   height: calc(100vh - 2rem);
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>
