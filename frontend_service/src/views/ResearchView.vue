@@ -54,10 +54,16 @@
         @click="closeSidebars"
       ></div>
 
-      <div class="content-area">
+      <div
+        class="content-area"
+        :class="{ 'left-panel-collapsed': isDesktopView && isDesktopLeftPanelCollapsed }"
+      >
         <aside
           class="sidebar"
-          :class="{ 'sidebar-open': isLeftSidebarOpen }"
+          :class="{
+            'sidebar-open': isLeftSidebarOpen,
+            'desktop-collapsed': isDesktopView && isDesktopLeftPanelCollapsed,
+          }"
         >
           <button
             class="sidebar-close"
@@ -66,10 +72,23 @@
             ✕
           </button>
           <div class="component-wrapper">
-            <AddProfileButton
-              :disabled="profilesLoading"
-              @profile-created="onProfileCreated"
-            />
+            <div class="desktop-sidebar-header">
+              <button
+                class="desktop-chevron-btn"
+                @click="toggleDesktopLeftPanel"
+                title="Hide profiles and chat history"
+                aria-label="Hide profiles and chat history"
+              >
+                ❮
+              </button>
+
+              <div class="desktop-add-profile-center">
+                <AddProfileButton
+                  :disabled="profilesLoading"
+                  @profile-created="onProfileCreated"
+                />
+              </div>
+            </div>
 
             <ProfileSelector
               :profiles="profiles"
@@ -89,6 +108,16 @@
             />
           </div>
         </aside>
+
+        <button
+          v-if="isDesktopView && isDesktopLeftPanelCollapsed"
+          class="desktop-restore-btn"
+          @click="toggleDesktopLeftPanel"
+          title="Show profiles and chat history"
+          aria-label="Show profiles and chat history"
+        >
+          ❯
+        </button>
 
         <main class="main-section">
           <ChatSection
@@ -129,7 +158,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount, watch } from 'vue'
 
 import AddProfileButton from '@/components/AddProfileButton.vue'
 import ChatHistory from '@/components/ChatHistory.vue'
@@ -160,6 +189,33 @@ const chatSectionRef = ref<InstanceType<typeof ChatSection> | null>(null)
 
 const isLeftSidebarOpen = ref(false)
 const isRightSidebarOpen = ref(false)
+
+const DESKTOP_BREAKPOINT = 1400
+
+const isDesktopView = ref(
+  typeof window !== 'undefined'
+    ? window.innerWidth > DESKTOP_BREAKPOINT
+    : true
+)
+
+const isDesktopLeftPanelCollapsed = ref(false)
+
+const updateViewportMode = () => {
+  const desktop = window.innerWidth > DESKTOP_BREAKPOINT
+  isDesktopView.value = desktop
+
+  if (!desktop) {
+    isDesktopLeftPanelCollapsed.value = false
+  }
+}
+
+const toggleDesktopLeftPanel = () => {
+  if (!isDesktopView.value) {
+    return
+  }
+
+  isDesktopLeftPanelCollapsed.value = !isDesktopLeftPanelCollapsed.value
+}
 
 const toggleLeftSidebar = () => {
   isLeftSidebarOpen.value = !isLeftSidebarOpen.value
@@ -318,6 +374,9 @@ const onMessageSubmitted = async (
 }
 
 onMounted(async () => {
+  window.addEventListener('resize', updateViewportMode)
+  updateViewportMode()
+
   loading.value = true
 
   await loadProfiles(null)
@@ -335,6 +394,10 @@ onMounted(async () => {
   }
 
   loading.value = false
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', updateViewportMode)
 })
 
 watch(selectedProfileId, (newProfileId) => {
@@ -466,6 +529,26 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   gap: 1.5rem;
   flex: 1;
   min-height: 0;
+  position: relative;
+}
+
+.sidebar {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.main-section {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.sidebar-right {
+  grid-column: 3;
+  grid-row: 1;
+}
+
+.content-area.left-panel-collapsed {
+  grid-template-columns: 2.5rem minmax(0, 1fr) 0.33fr;
 }
 
 .sidebar,
@@ -475,6 +558,13 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   display: flex;
   flex-direction: column;
   position: relative;
+}
+
+.sidebar.desktop-collapsed {
+  width: 0;
+  min-width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sidebar-close {
@@ -506,12 +596,70 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   gap: 1rem;
 }
 
+.desktop-sidebar-header {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+}
+
+.desktop-add-profile-center {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.desktop-chevron-btn,
+.desktop-restore-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--size-border-radius-sm);
+  background-color: var(--color-bg-2);
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.desktop-chevron-btn:hover,
+.desktop-restore-btn:hover {
+  background-color: var(--color-surface-hover);
+  border-color: var(--color-primary);
+}
+
+.desktop-restore-btn {
+  grid-column: 1;
+  grid-row: 1;
+  justify-self: center;
+  align-self: start;
+  margin-top: 0.25rem;
+  z-index: 1;
+}
+
+.desktop-chevron-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
 .main-section {
   display: flex;
   flex-direction: column;
   height: 100%;
   min-height: 0;
   overflow: hidden;
+}
+
+@media (min-width: 1401px) {
+  .desktop-chevron-btn,
+  .desktop-restore-btn {
+    display: inline-flex;
+  }
 }
 
 @media (max-width: 1400px) {
@@ -534,6 +682,24 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   .content-area {
     grid-template-columns: 1fr;
     position: relative;
+  }
+
+  .sidebar,
+  .main-section,
+  .sidebar-right,
+  .desktop-restore-btn {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .content-area.left-panel-collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar.desktop-collapsed {
+    width: 50%;
+    opacity: 1;
+    pointer-events: auto;
   }
 
   .sidebar,
