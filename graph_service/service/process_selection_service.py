@@ -19,6 +19,12 @@ async def select_process(
 ) -> ProcessSelectionOutput:
     system_prompt = load_prompt("process_selection.md")
 
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Selecting research process..."
+        })
+
     messages = copy_messages(input_data.messages) if input_data.messages else []
     messages.append(
         SystemMessage(content=system_prompt),
@@ -31,5 +37,11 @@ async def select_process(
         input=messages,        
         output_type=ProcessSelectionOutput,       
     )        
+
+    if stream_writer:
+        stream_writer({
+            "type": "blurb",
+            "content": "Process selection completed."
+        })
 
     return output

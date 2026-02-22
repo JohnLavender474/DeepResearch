@@ -47,10 +47,21 @@ from service.generate_summary_service import (
 logger = logging.getLogger(__name__)
 
 
+def _get_stream_writer_safe():
+    try:
+        return get_stream_writer()
+    except RuntimeError as exc:
+        logger.warning(
+            "Stream writer unavailable outside runnable context: %s",
+            exc,
+        )
+        return None
+
+
 async def node_process_selection(state: GraphState) -> GraphState:
     logger.debug("Starting process selection node")
     
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = ProcessSelectionInput(
         user_query=state.user_query,
@@ -93,7 +104,7 @@ async def node_process_selection(state: GraphState) -> GraphState:
 async def node_simple_process(state: GraphState) -> GraphState:
     logger.debug("Starting simple process node")
 
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = SimpleProcessInput(
         query=state.user_query,
@@ -128,13 +139,12 @@ async def node_parallel_tasks(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting parallel tasks node")
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = PerformResearchInput(
         query=state.user_query,
         collection_name=state.profile_id,
-        chat_history=state.messages,
-        execution_config=state.execution_config,
+        chat_history=state.messages,        
     )
     
     llm_client = get_llm(state.execution_config.model_selection)
@@ -163,7 +173,7 @@ async def node_sequential_tasks(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting sequential tasks node")
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = PerformResearchInput(
         query=state.user_query,
@@ -198,7 +208,7 @@ async def node_perform_review(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting perform review node")
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = PerformReviewInput(
         task_entries=state.task_entries,
@@ -231,7 +241,7 @@ async def node_generate_summary(
     state: GraphState,
 ) -> GraphState:
     logger.debug("Starting generate summary node")
-    stream_writer = get_stream_writer()
+    stream_writer = _get_stream_writer_safe()
 
     input_data = GenerateSummaryInput(
         task_entries=state.task_entries,
