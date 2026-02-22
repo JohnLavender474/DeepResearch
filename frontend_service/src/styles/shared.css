@@ -104,7 +104,7 @@ body {
 .markdown-content {
   font-size: 0.95rem;
   line-height: 1.6;
-  color: var(--color-text-primary);
+  color: var(--color-markdown-text, #1f2937);
 }
 
 .markdown-content p {
@@ -132,7 +132,7 @@ body {
 }
 
 .markdown-content pre {
-  background-color: var(--color-bg-2);
+  background-color: var(--color-markdown-code-bg, #f3f4f6);
   padding: 1rem;
   border-radius: 4px;
   overflow-x: auto;
@@ -140,7 +140,7 @@ body {
 }
 
 .markdown-content code {
-  background-color: var(--color-bg-2);
+  background-color: var(--color-markdown-code-bg, #f3f4f6);
   padding: 0.125rem 0.25rem;
   border-radius: 3px;
   font-size: 0.875em;
@@ -152,10 +152,10 @@ body {
 }
 
 .markdown-content blockquote {
-  border-left: 3px solid var(--color-border);
+  border-left: 3px solid var(--color-markdown-border, #d1d5db);
   padding-left: 1rem;
   margin: 0.75rem 0;
-  color: var(--color-text-tertiary);
+  color: var(--color-markdown-muted, #4b5563);
 }
 
 .markdown-content table {
@@ -171,7 +171,7 @@ body {
 .markdown-content td {
   text-align: left;
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-markdown-border, #d1d5db);
   vertical-align: top;
 }
 

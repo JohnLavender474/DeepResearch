@@ -367,7 +367,7 @@ const truncateFilename = (filename: string, maxLength: number = 15): string => {
 
 const openPdfAtPage = (step: GraphStep, citation: TaskCitation): void => {
   const profileId = step.details?.input?.collection_name || citation.collection_name
-  
+
   const filename = citation.filename
   const pageNumber = citation.page_number
   
