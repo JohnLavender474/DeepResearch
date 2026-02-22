@@ -588,4 +588,59 @@ watch(totalPages, (newTotalPages) => {
     color: var(--color-text-tertiary);
     pointer-events: none;
 }
+
+@media (max-width: 900px) {
+    .table-container {
+        padding-right: 0;
+    }
+
+    .documents-table colgroup,
+    .documents-table thead {
+        display: none;
+    }
+
+    .documents-table,
+    .documents-table tbody,
+    .documents-table tr,
+    .documents-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .documents-table tbody tr {
+        padding: 0.7rem 0.75rem;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    .documents-table tbody tr:last-child {
+        border-bottom: none;
+    }
+
+    .documents-table tbody td {
+        border-bottom: none;
+        padding: 0.2rem 0;
+    }
+
+    .filename-cell {
+        font-weight: 500;
+        margin-bottom: 0.1rem;
+    }
+
+    .uploaded-at-cell::before {
+        content: 'Uploaded At: ';
+        color: var(--color-text-tertiary);
+    }
+
+    .actions-cell {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        padding-top: 0.45rem;
+        padding-right: 0;
+    }
+
+    .action-button {
+        margin-right: 0;
+    }
+}
 </style>
