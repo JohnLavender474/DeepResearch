@@ -462,7 +462,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 
 .content-area {
   display: grid;
-  grid-template-columns: 280px 1fr 300px;
+  grid-template-columns: 0.25fr 0.5fr 0.25fr;
   gap: 1.5rem;
   flex: 1;
   min-height: 0;
@@ -541,13 +541,14 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
     position: fixed;
     top: 0;
     bottom: 0;
-    width: 320px;
-    height: 100vh;
+    width: 50%;
+    height: 90%;
     z-index: 1000;
     background-color: var(--color-bg-1);
     border: 1px solid var(--color-border);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
     transition: transform var(--transition-slow);
+    overflow: auto;
     padding: 1rem;
   }
 
