@@ -46,8 +46,10 @@
         </div>
 
         <div v-else-if="isLoading" class="no-steps">
-          <div class="spinner-small"></div>
-          <span>{{ content.latestBlurb || 'Processing...' }}</span>
+          <div v-if="content.latestBlurb">
+            <div class="spinner-small"></div>
+            <span>{{ content.latestBlurb }}</span>
+          </div>
         </div>
 
         <div v-else-if="content.status === 'error'" class="result-error">
@@ -300,6 +302,7 @@ const rootElement = ref<HTMLElement | null>(null)
 const copiedStates = ref<Record<string, boolean>>({})
 
 const isModalOpen = ref(false)
+
 const modalTitle = ref('')
 const modalContent = ref('')
 
