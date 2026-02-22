@@ -1,96 +1,94 @@
 <template>
     <div class="file-upload">
-        <div>
-            <UploadFile
-                @file-selected="handleFile"
-            />
+        <UploadFile
+            @file-selected="handleFile"
+        />
 
-            <div v-if="errorMessage" class="error-message">
-                {{ errorMessage }}
+        <div v-if="errorMessage" class="error-message">
+            {{ errorMessage }}
+        </div>
+
+        <div class="uploaded-files">
+            <div class="uploaded-files-header">
+                <h4>Uploaded Documents</h4>
+                <div class="header-actions">
+                    <button
+                        class="refresh-button"
+                        @click="loadUploadedFiles(props.profileId)"
+                        title="Refresh documents list"
+                        :disabled="loadingDocuments"
+                    >
+                        <RefreshCw
+                            :size="18"
+                            :class="{ 'spinning': loadingDocuments }"
+                        />
+                    </button>
+                    <button
+                        class="refresh-button"
+                        @click="openDocumentsBrowser"
+                        title="Search and browse documents"
+                        :disabled="loadingDocuments"
+                    >
+                        <ExternalLink :size="18" />
+                    </button>
+                </div>
             </div>
-
-            <div class="uploaded-files">
-                <div class="uploaded-files-header">
-                    <h4>Uploaded Documents</h4>
-                    <div class="header-actions">
-                        <button
-                            class="refresh-button"
-                            @click="loadUploadedFiles(props.profileId)"
-                            title="Refresh documents list"
-                            :disabled="loadingDocuments"
-                        >
-                            <RefreshCw
-                                :size="18"
-                                :class="{ 'spinning': loadingDocuments }"
-                            />
-                        </button>
-                        <button
-                            class="refresh-button"
-                            @click="openDocumentsBrowser"
-                            title="Search and browse documents"
-                            :disabled="loadingDocuments"
-                        >
-                            <ExternalLink :size="18" />
-                        </button>
-                    </div>
-                </div>
-                <div class="search-container">
-                    <input
-                        v-model="searchQuery"
-                        type="text"
-                        class="search-input"
-                        placeholder="Search documents by name"
-                    />
-                </div>
-                <div v-if="loadingDocuments && uploadedFiles.size === 0" class="loading-container">
-                    <div class="spinner"></div>
-                    <span>Loading documents...</span>
-                </div>
-                <ul v-else>
-                    <li
-                        v-for="file in paginatedFiles"
-                        :key="file.filename"
-                        @click="openDocumentModal(file)"
-                        class="document-row"
-                    >
-                        <span class="file-name">{{ file.filename }}</span>
-                    </li>
-                    <li v-if="uploadedFiles.size === 0" class="no-documents">
-                        No documents uploaded yet
-                    </li>
-                    <li
-                        v-else-if="filteredFiles.length === 0"
-                        class="no-documents"
-                    >
-                        No documents match your search
-                    </li>
-                    <li v-if="loadingDocuments && uploadedFiles.size > 0" class="loading-more">
-                        <div class="spinner-small"></div>
-                        <span>Loading more documents...</span>
-                    </li>
-                </ul>
-                <div
-                    v-if="filteredFiles.length > 0"
-                    class="pagination-container"
+            <div class="search-container">
+                <input
+                    v-model="searchQuery"
+                    type="text"
+                    class="search-input"
+                    placeholder="Search documents by name"
+                />
+            </div>
+            <div v-if="loadingDocuments && uploadedFiles.size === 0" class="loading-container">
+                <div class="spinner"></div>
+                <span>Loading documents...</span>
+            </div>
+            <ul v-else>
+                <li
+                    v-for="file in paginatedFiles"
+                    :key="file.filename"
+                    @click="openDocumentModal(file)"
+                    class="document-row"
                 >
-                    <button
-                        class="pagination-button"
-                        @click="goToPreviousPage"
-                        :disabled="!canGoPrevious"
-                    >
-                        Previous
-                    </button>
-                    <span class="pagination-info">
-                        Page {{ currentPage }} of {{ totalPages }}
-                    </span>
-                    <button
-                        class="pagination-button"
-                        @click="goToNextPage"
-                        :disabled="!canGoNext"
-                    >
-                        Next
-                    </button>
-                </div>
+                    <span class="file-name">{{ file.filename }}</span>
+                </li>
+                <li v-if="uploadedFiles.size === 0" class="no-documents">
+                    No documents uploaded yet
+                </li>
+                <li
+                    v-else-if="filteredFiles.length === 0"
+                    class="no-documents"
+                >
+                    No documents match your search
+                </li>
+                <li v-if="loadingDocuments && uploadedFiles.size > 0" class="loading-more">
+                    <div class="spinner-small"></div>
+                    <span>Loading more documents...</span>
+                </li>
+            </ul>
+            <div
+                v-if="filteredFiles.length > 0"
+                class="pagination-container"
+            >
+                <button
+                    class="pagination-button"
+                    @click="goToPreviousPage"
+                    :disabled="!canGoPrevious"
+                >
+                    Previous
+                </button>
+                <span class="pagination-info">
+                    Page {{ currentPage }} of {{ totalPages }}
+                </span>
+                <button
+                    class="pagination-button"
+                    @click="goToNextPage"
+                    :disabled="!canGoNext"
+                >
+                    Next
+                </button>
             </div>
         </div>
 
@@ -405,6 +403,7 @@ watch(totalPages, (newTotalPages) => {
     flex-direction: column;
     gap: 1rem;
     height: 100%;
+    min-height: 0;
 }
 
 .uploaded-files {
@@ -413,7 +412,7 @@ watch(totalPages, (newTotalPages) => {
     border-radius: var(--size-border-radius);
     padding: 1rem;
     flex: 1;
-    overflow-y: auto;
+    overflow: hidden;
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -510,6 +509,25 @@ watch(totalPages, (newTotalPages) => {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+}
+
+.uploaded-files ul::-webkit-scrollbar {
+    width: 10px;
+}
+
+.uploaded-files ul::-webkit-scrollbar-track {
+    background: var(--color-surface);
+}
+
+.uploaded-files ul::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: var(--size-border-radius-sm);
+}
+
+.uploaded-files ul::-webkit-scrollbar-thumb:hover {
+    background: var(--color-text-tertiary);
 }
 
 .document-row {
