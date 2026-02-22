@@ -15,6 +15,11 @@ Review the task results and evaluate:
 4. **Gaps**: Are there any missing perspectives or
    information?
 
+### Handling Non-English Text
+
+- Attempt to translate cited writings and work titles into English when possible.
+- When appropriate, provide the original text in the original language alongside the English translation.
+
 ## Output
 
 Provide a structured review that:

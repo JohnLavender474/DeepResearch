@@ -62,7 +62,11 @@ should:
    names should be formatted in italics, and the page numbers should be included in parentheses as
    "page X", "pages X-Y", or "pages X, Y, and Z" immediately following the source name.
 
-4. **Suggest next steps**: Provide 3 to 5 good follow-up questions 
+5. **Handle non-English text**: Attempt to translate cited writings and work titles into English
+  when possible. When appropriate, provide the original text in the original language alongside
+  the English translation.
+
+6. **Suggest next steps**: Provide 3 to 5 good follow-up questions 
    that would help deepen or refine the research based on the synthesized
    findings. Do not provide headings for the next steps section, just list 
    the questions in a clear and concise manner.

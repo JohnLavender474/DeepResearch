@@ -16,6 +16,11 @@ Provide citations to any sources you used in your research
 where each citation includes the source name and page number
 if either is available and applies.
 
+## Handling Non-English Text
+
+- Attempt to translate cited writings and work titles into English when possible.
+- When appropriate, provide the original text in the original language alongside the English translation.
+
 ## Additional Context
 
 ### Current Date
