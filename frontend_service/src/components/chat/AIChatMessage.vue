@@ -367,10 +367,15 @@ const truncateFilename = (filename: string, maxLength: number = 15): string => {
 
 const openPdfAtPage = (step: GraphStep, citation: TaskCitation): void => {
   const profileId = step.details?.input?.collection_name || citation.collection_name
+  
   const filename = citation.filename
   const pageNumber = citation.page_number
   
-  const url = `/api/storage/collections/${profileId}/blobs/${encodeURIComponent(filename)}#page=${pageNumber}`
+  let url = `/api/storage/collections/${profileId}/blobs/${encodeURIComponent(filename)}`
+  if (pageNumber > 0) {
+    url += `#page=${pageNumber}`
+  }
+
   window.open(url, '_blank')
 }
 
