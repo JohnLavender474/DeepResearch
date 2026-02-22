@@ -85,7 +85,7 @@ services:
     image: deepresearch/embedding_service
     environment:
       QDRANT_URL: http://qdrant:6333
-      SENTENCE_TRANSFORMER_MODEL: ${SENTENCE_TRANSFORMER_MODEL}
+      SENTENCE_TRANSFORMER_MODEL: ${SENTENCE_TRANSFORMER_MODEL:-all-MiniLM-L6-v2}
       DATABASE_SERVICE_URL: http://database_service:8003/api/database
       MAX_UPLOAD_SIZE_MB: ${MAX_UPLOAD_SIZE_MB:-50}
     ports:

@@ -60,7 +60,7 @@ OPENAI_API_KEY=your_openai_api_key
 DEFAULT_LLM_MODEL=claude  # Set to your preferred default model
 
 # Embedding service
-SENTENCE_TRANSFORMER_MODEL=your_model_name
+SENTENCE_TRANSFORMER_MODEL=all-MiniLM-L6-v2  # Optional; defaults to this value
 
 # Database configuration
 POSTGRES_USER=root

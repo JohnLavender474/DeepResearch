@@ -8,14 +8,17 @@ load_dotenv()
 
 def _get_required_env_var(var_name):
     value = os.getenv(var_name)
-    if value is None:
+    if value is None or not value.strip():
         raise EnvironmentError(f"Required environment variable '{var_name}' is not set.")
     return value
 
 
 QDRANT_URL = _get_required_env_var("QDRANT_URL")
 
-SENTENCE_TRANSFORMER_MODEL = _get_required_env_var("SENTENCE_TRANSFORMER_MODEL")
+SENTENCE_TRANSFORMER_MODEL = os.getenv(
+    "SENTENCE_TRANSFORMER_MODEL",
+    "all-MiniLM-L6-v2"
+).strip() or "all-MiniLM-L6-v2"
 
 
 def _get_optional_env_var(var_name, default_value):
