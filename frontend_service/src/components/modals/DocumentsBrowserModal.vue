@@ -68,7 +68,9 @@
                                 v-for="document in paginatedDocuments"
                                 :key="document.filename"
                             >
-                                <td class="filename-cell">{{ document.filename }}</td>
+                                <td class="filename-cell" :title="document.filename">
+                                    {{ getDisplayFilename(document.filename) }}
+                                </td>
                                 <td class="uploaded-at-cell">{{ formatUploadedAt(document.uploadedAt) }}</td>
                                 <td class="actions-cell">
                                     <button
@@ -304,6 +306,11 @@ const getSortIndicator = (field: SortField) => {
     return sortDirection.value === 'asc' ? '↑' : '↓'
 }
 
+const getDisplayFilename = (filename: string) => {
+    const truncated = filename.slice(0, 50)
+    return truncated + (filename.length > 50 ? '...' : '')
+}
+
 const formatUploadedAt = (value: string) => {
     const parsed = new Date(value)
     
@@ -432,7 +439,7 @@ watch(totalPages, (newTotalPages) => {
 }
 
 .filename-col {
-    width: auto;
+    width: 360px;
 }
 
 .uploaded-at-col {
