@@ -58,7 +58,7 @@ const onProfileCreated = (profile: Profile) => {
   border-radius: var(--size-border-radius);
   border: 1px solid var(--color-primary);
   background-color: var(--color-primary);
-  color: var(--color-text-primary);
+  color: var(--color-text-on-primary);
   font-size: 0.85rem;
   cursor: pointer;
   font-weight: 500;  

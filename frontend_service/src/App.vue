@@ -27,8 +27,10 @@
     <SettingsModal
       :is-open="isSettingsModalOpen"
       :response-mode="responseMode"
+      :theme-mode="themeMode"
       @close="isSettingsModalOpen = false"
       @update:response-mode="setResponseMode"
+      @update:theme-mode="setThemeMode"
     />
   </div>
 </template>
@@ -44,7 +46,12 @@ import { useAppSettings } from '@/composables/useAppSettings'
 import { useToasts } from '@/composables/useToasts'
 
 const { toasts } = useToasts()
-const { responseMode, setResponseMode } = useAppSettings()
+const {
+  responseMode,
+  themeMode,
+  setResponseMode,
+  setThemeMode,
+} = useAppSettings()
 
 const isSettingsModalOpen = ref(false)
 </script>

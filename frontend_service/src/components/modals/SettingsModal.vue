@@ -10,7 +10,37 @@
             </button>
           </div>
 
-          <div class="modal-body">
+          <div class="modal-body">            
+            <div class="setting-row">
+              <div class="setting-text">
+                <div class="setting-title">Theme</div>
+                <div class="setting-description">
+                  Choose between dark mode and light mode.
+                </div>
+              </div>
+
+              <div class="toggle-group" role="radiogroup" aria-label="Theme mode">                
+                <button
+                  class="toggle-option"
+                  :class="{ active: themeMode === 'light' }"
+                  @click="onThemeChange('light')"
+                  role="radio"
+                  :aria-checked="themeMode === 'light'"
+                >
+                  Light
+                </button>
+                <button
+                  class="toggle-option"
+                  :class="{ active: themeMode === 'dark' }"
+                  @click="onThemeChange('dark')"
+                  role="radio"
+                  :aria-checked="themeMode === 'dark'"
+                >
+                  Dark
+                </button>
+              </div>
+            </div>
+
             <div class="setting-row">
               <div class="setting-text">
                 <div class="setting-title-row">
@@ -59,7 +89,7 @@
                 </button>
               </div>
             </div>
-          </div>
+          </div>          
 
           <div class="modal-footer">
             <button class="close-button-text" @click="closeModal">
@@ -77,12 +107,16 @@ import { watch } from 'vue'
 import { X, CircleHelp } from 'lucide-vue-next'
 import { VTooltip } from 'vuetify/components'
 
-import type { ResponseMode } from '@/composables/useAppSettings'
+import {
+  type ResponseMode,
+  type ThemeMode,
+} from '@/composables/useAppSettings'
 
 
 interface SettingsModalProps {
   isOpen: boolean
   responseMode: ResponseMode
+  themeMode: ThemeMode
 }
 
 const props = defineProps<SettingsModalProps>()
@@ -90,6 +124,7 @@ const props = defineProps<SettingsModalProps>()
 const emit = defineEmits<{
   (e: 'close'): void
   (e: 'update:responseMode', mode: ResponseMode): void
+  (e: 'update:themeMode', mode: ThemeMode): void
 }>()
 
 const closeModal = () => {
@@ -98,6 +133,10 @@ const closeModal = () => {
 
 const onModeChange = (mode: ResponseMode) => {
   emit('update:responseMode', mode)
+}
+
+const onThemeChange = (mode: ThemeMode) => {
+  emit('update:themeMode', mode)
 }
 
 watch(() => props.isOpen, (newValue) => {
@@ -178,7 +217,16 @@ watch(() => props.isOpen, (newValue) => {
 .setting-row {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1rem;  
+}
+
+.setting-row:not(:last-child) {
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 1.25rem;  
+}
+
+.setting-row + .setting-row {
+  padding-top: 1.25rem;
 }
 
 .setting-title {
@@ -257,7 +305,7 @@ watch(() => props.isOpen, (newValue) => {
 
 .toggle-option.active {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-text-on-primary);
 }
 
 .modal-footer {
