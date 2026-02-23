@@ -16,18 +16,23 @@
             Select an existing profile or create a new one to start
             researching, chatting, and managing documents.
           </p>
-          <AddProfileButton
-            :disabled="profilesLoading"
-            @profile-created="onProfileCreated"
-          />
-          <ProfileSelector
-            v-if="profiles.length > 0"
-            :profiles="profiles"
-            :loading="profilesLoading"
-            :disabled="profilesLoading"
-            :model-value="selectedProfileId"
-            @profile-changed="onProfileChanged"
-          />
+          <p v-if="profiles.length > 0" class="profile-hint">
+            {{ profiles.length }} {{ profiles.length === 1 ? 'profile' : 'profiles' }} available to choose from
+          </p>
+          <div class="profile-selector-row">
+            <AddProfileButton
+              :disabled="profilesLoading"
+              @profile-created="onProfileCreated"
+            />
+            <ProfileSelector
+              v-if="profiles.length > 0"
+              :profiles="profiles"
+              :loading="profilesLoading"
+              :disabled="profilesLoading"
+              :model-value="selectedProfileId"
+              @profile-changed="onProfileChanged"
+            />
+          </div>
         </div>
       </div>
     </template>
@@ -471,6 +476,21 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   font-size: 0.95rem;
   color: var(--color-text-secondary);
   line-height: 1.5;
+}
+
+.profile-hint {
+  font-size: 0.85rem;
+  color: var(--color-text-tertiary);
+  font-style: italic;
+  margin-top: 0.5rem;
+}
+
+.profile-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .mobile-controls {

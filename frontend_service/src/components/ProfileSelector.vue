@@ -7,6 +7,9 @@
       @change="onProfileChange"
       :disabled="disabled"
     >
+      <option value="" disabled>
+        ▼ Select a profile
+      </option>
       <option
         v-for="profile in profiles"
         :key="profile.id"

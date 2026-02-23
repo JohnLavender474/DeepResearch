@@ -13,7 +13,26 @@
           <div class="modal-body">
             <div class="setting-row">
               <div class="setting-text">
-                <div class="setting-title">AI Response View</div>
+                <div class="setting-title-row">
+                  <div class="setting-title">AI Response View</div>
+                  <span
+                    class="setting-help"
+                    tabindex="0"
+                    aria-label="AI Response View info"
+                  >
+                    <VTooltip
+                      location="top"
+                      content-class="settings-help-tooltip"
+                    >
+                      <template #activator="{ props: tooltipProps }">
+                        <span v-bind="tooltipProps" class="setting-help-icon">
+                          <CircleHelp :size="14" />
+                        </span>
+                      </template>
+                      Decomposed shows step-by-step execution details plus the final summary. Simple shows only the final AI response.
+                    </VTooltip>
+                  </span>
+                </div>
                 <div class="setting-description">
                   Choose how assistant responses are displayed in chat.
                 </div>
@@ -55,7 +74,8 @@
 
 <script setup lang="ts">
 import { watch } from 'vue'
-import { X } from 'lucide-vue-next'
+import { X, CircleHelp } from 'lucide-vue-next'
+import { VTooltip } from 'vuetify/components'
 
 import type { ResponseMode } from '@/composables/useAppSettings'
 
@@ -165,6 +185,44 @@ watch(() => props.isOpen, (newValue) => {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--color-text-primary);
+}
+
+.setting-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.setting-help {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.setting-help-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-tertiary);
+  cursor: help;
+}
+
+.setting-help:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 9999px;
+}
+
+:global(.settings-help-tooltip) {
+  background: var(--color-bg-1) !important;
+  color: var(--color-text-primary) !important;
+  border: 1px solid var(--color-border);
+  border-radius: var(--size-border-radius-sm);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+  font-size: 0.78rem;
+  line-height: 1.35;
+  padding: 0.45rem 0.6rem;
+  max-width: 320px;
 }
 
 .setting-description {
