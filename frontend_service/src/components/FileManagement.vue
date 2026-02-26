@@ -1,7 +1,7 @@
 <template>
     <div class="file-upload">
         <UploadFile
-            @file-selected="handleFile"
+            @files-selected="handleFiles"
         />
 
         <div v-if="errorMessage" class="error-message">
@@ -241,57 +241,107 @@ const loadUploadedFiles = async (profileId: string) => {
     }
 }
 
-const handleFile = async (file: File) => {
+const handleFiles = async (files: File[]) => {
     errorMessage.value = ''
 
-    if (!file.name.toLowerCase().endsWith('.pdf')) {
-        errorMessage.value = 'Only PDF files are allowed'
+    if (files.length === 0) {
+        errorMessage.value = 'No files selected'
         return
     }
 
-    if (uploadedFiles.value.has(file.name)) {
-        addToast('A file with this name already exists', 'error')
-        return
+    let successfulUploads = 0
+    const uploadPromises: Promise<boolean>[] = []
+
+    for (const file of files) {
+        if (!file.name.toLowerCase().endsWith('.pdf')) {
+            errorMessage.value = 'Only PDF files are allowed'
+            addToast(`Skipping ${file.name}: only PDF files are allowed`, 'error')
+            continue
+        }
+
+        if (uploadedFiles.value.has(file.name)) {
+            addToast(
+                `Skipping ${file.name}: a file with this name already exists`,
+                'error'
+            )
+            continue
+        }
+
+        if (fileSizeExceedsMax(file)) {
+            if (files.length === 1) {
+                console.warn(`File ${file.name} exceeds maximum size and will be split`)
+                oversizedFile.value = file
+                isSplitModalOpen.value = true
+                return
+            }
+
+            console.warn(`File ${file.name} exceeds maximum size and will be skipped`)
+            addToast(
+                `Skipping ${file.name}: file exceeds maximum size`,
+                'error'
+            )
+            continue
+        }
+
+        const uploadPromise = uploadSingleFile(
+            file,
+            false
+        )
+        uploadPromises.push(uploadPromise)
     }
 
-    if (fileSizeExceedsMax(file)) {
-        oversizedFile.value = file
-        isSplitModalOpen.value = true
-        return
+    const uploadResults = await Promise.all(uploadPromises)
+
+    for (const uploadSucceeded of uploadResults) {
+        if (uploadSucceeded) {
+            successfulUploads += 1
+        }
     }
 
-    await uploadSingleFile(file)
+    if (successfulUploads > 0) {
+        await loadUploadedFiles(props.profileId)
+    }
 }
 
-const uploadSingleFile = async (file: File) => {
+const uploadSingleFile = async (
+    file: File,
+    reloadOnSuccess: boolean = true
+): Promise<boolean> => {
     addToast(
         `File ${file.name} is processing`,
         'info',
     )
 
-    uploadFile(props.profileId, file)
-        .then(() => {
-            console.log(`File ${file.name} uploaded successfully`)
+    try {
+        await uploadFile(props.profileId, file)
 
-            emit('file-uploaded', file.name)
-            loadUploadedFiles(props.profileId)
+        console.log(`File ${file.name} uploaded successfully`)
 
-            addToast(
-                `File ${file.name} successfully uploaded`,
-                'success',
-            )
-        })
-        .catch((error) => {
-            errorMessage.value =
-                error instanceof Error
-                    ? error.message
-                    : 'Failed to upload document'
+        emit('file-uploaded', file.name)
 
-            addToast(
-                `File ${file.name} failed to upload`,
-                'error',
-            )
-        })
+        if (reloadOnSuccess) {
+            await loadUploadedFiles(props.profileId)
+        }
+
+        addToast(
+            `File ${file.name} successfully uploaded`,
+            'success',
+        )
+
+        return true
+    } catch (error) {
+        errorMessage.value =
+            error instanceof Error
+                ? error.message
+                : 'Failed to upload document'
+
+        addToast(
+            `File ${file.name} failed to upload`,
+            'error',
+        )
+
+        return false
+    }
 }
 
 const closeSplitModal = () => {

@@ -8,7 +8,8 @@
             ref="fileInput"
             type="file"
             accept=".pdf"
-            @change="onFileSelected"
+            multiple
+            @change="onFilesSelected"
             hidden
         />
 
@@ -32,8 +33,10 @@
             </svg>
         </div>
 
-        <p class="upload-text">           
-            <span class="upload-subtext">Click to select a file for upload</span>
+        <p class="upload-text">
+            <span class="upload-subtext">
+                Click to select one or more files for upload
+            </span>
         </p>
     </div>
 </template>
@@ -43,7 +46,7 @@ import { ref } from 'vue'
 
 
 const emit = defineEmits<{
-    (e: 'file-selected', file: File): void
+    (e: 'files-selected', files: File[]): void
 }>()
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -56,11 +59,11 @@ const openFileDialog = () => {
     }
 }
 
-const onFileSelected = (event: Event) => {
+const onFilesSelected = (event: Event) => {
     const target = event.target as HTMLInputElement
     const files = target.files
     if (files && files.length > 0) {
-        emit('file-selected', files[0])
+        emit('files-selected', Array.from(files))
     }
 
     if (fileInput.value) {
