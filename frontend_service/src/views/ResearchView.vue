@@ -39,6 +39,10 @@
 
     <template v-else>
       <div class="mobile-controls">
+        <div class="mobile-profile-name" :title="selectedProfileName">
+          {{ mobileProfileName }}
+        </div>
+
         <button
           class="sidebar-toggle"
           @click="toggleLeftSidebar"
@@ -271,6 +275,28 @@ const messagesAsArray = computed(() =>
   Array.from(messages.value.values())
 )
 
+const selectedProfileName = computed(() => {
+  const profile = profiles.value.find(
+    (item) => item.id === selectedProfileId.value
+  )
+
+  if (!profile) {
+    return ''
+  }
+
+  return profile.id
+})
+
+const mobileProfileName = computed(() => {
+  const maxChars = 50
+
+  if (selectedProfileName.value.length <= maxChars) {
+    return selectedProfileName.value
+  }
+
+  return `${selectedProfileName.value.slice(0, maxChars)}...`
+})
+
 const loadProfiles = async (preferredProfileId: string | null) => {
   profilesLoading.value = true
 
@@ -500,6 +526,19 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   flex-shrink: 0;
 }
 
+.mobile-profile-name {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 0.9rem;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .sidebar-toggle {
   flex: 1;
   padding: 0.75rem 1rem;
@@ -689,6 +728,18 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
 @media (max-width: 1400px) {
   .mobile-controls {
     display: flex;
+    align-items: center;
+  }
+
+  .mobile-profile-name {
+    flex: 0 1 auto;
+    min-width: 0;
+  }
+
+  .sidebar-toggle {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 0.75rem 0.5rem;
   }
 
   .sidebar-backdrop {
