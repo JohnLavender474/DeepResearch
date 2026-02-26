@@ -41,7 +41,7 @@ const formatTime = (date: Date): string => {
   max-width: 70%;
   padding: 0.75rem 1rem;
   background-color: var(--color-bg-3);
-  color: white;
+  color: var(--color-text-primary);
   border-radius: var(--size-border-radius);
   word-wrap: break-word;
   white-space: pre-wrap;
