@@ -40,7 +40,7 @@ const props = defineProps<ToastListProps>()
     font-size: 0.85rem;
     font-weight: 500;
     border: 1px solid transparent;
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--shadow-toast);
     animation: slideIn 0.3s ease-out;
     backdrop-filter: blur(8px);
 }
@@ -57,19 +57,19 @@ const props = defineProps<ToastListProps>()
 }
 
 .toast.info {
-    background-color: rgba(30, 42, 58, 0.95);
+    background-color: var(--color-info-bg);
     border-color: var(--color-info-border);
     color: var(--color-info-text);
 }
 
 .toast.success {
-    background-color: rgba(30, 58, 31, 0.95);
+    background-color: var(--color-success-bg);
     border-color: var(--color-success-border);
     color: var(--color-success-text);
 }
 
 .toast.error {
-    background-color: rgba(58, 31, 31, 0.95);
+    background-color: var(--color-error-bg);
     border-color: var(--color-error-border);
     color: var(--color-error-text);
 }
