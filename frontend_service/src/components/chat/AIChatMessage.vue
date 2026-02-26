@@ -46,8 +46,7 @@
         </div>
 
         <div v-else-if="isLoading" class="no-steps">
-          <div v-if="content.latestBlurb">
-            <div class="spinner-small"></div>
+          <div v-if="content.latestBlurb">            
             <span>A response will appear here when it is ready...</span>
           </div>
         </div>
