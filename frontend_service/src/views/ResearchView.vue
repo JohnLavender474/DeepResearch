@@ -664,7 +664,7 @@ watch(currentConversationId, (newConversationId, oldConversationId) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 2rem;
+  min-height: 2.5rem;
 }
 
 .desktop-add-profile-center {

@@ -21,7 +21,7 @@ router = APIRouter(
 
 
 PROFILE_IDS_NOT_ALLOWED = [
-    "conversations",
+    "general"
 ]
 
 
