@@ -1,4 +1,4 @@
-# DeepResearch
+# Deep Research
 
 A microservices-based research platform built as a learning project for
 task decomposition, LangChain graphs, and vector embedding databases.
